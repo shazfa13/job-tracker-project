@@ -1,49 +1,49 @@
-from flask import Flask, request, jsonify
+﻿from flask import Flask, request, jsonify
 from flask_cors import CORS
-import sqlite3
+from pymongo import MongoClient, errors
+from bson.objectid import ObjectId
+import os
 
 app = Flask(__name__)
 CORS(app)
 
-# -------------------------
-# DATABASE CONNECTION
-# -------------------------
-def get_db():
-    conn = sqlite3.connect("jobs.db")
-    conn.row_factory = sqlite3.Row
-    return conn
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+client = MongoClient(MONGO_URI)
+db = client["jobtracker"]
+users_col = db["users"]
+jobs_col = db["jobs"]
 
-def init_db():
-    """Initialize database tables"""
-    conn = get_db()
-    
-    conn.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT,
-        role TEXT DEFAULT 'client'
-    )
-    """)
-    
-    conn.execute("""
-    CREATE TABLE IF NOT EXISTS jobs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        company TEXT,
-        role TEXT,
-        status TEXT,
-        notes TEXT DEFAULT ''
-    )
-    """)
-    
-    conn.commit()
-    conn.close()
+# Ensure indexes
+users_col.create_index("username", unique=True)
+jobs_col.create_index("user_id")
 
 # -------------------------
-# CREATE TABLES
+# HELPERS
 # -------------------------
-init_db()
+def serialize_user(user):
+    return {
+        "id": str(user["_id"]),
+        "username": user["username"],
+        "role": user.get("role", "client")
+    }
+
+
+def serialize_job(job):
+    return {
+        "id": str(job["_id"]),
+        "user_id": str(job["user_id"]),
+        "company": job.get("company", ""),
+        "role": job.get("role", ""),
+        "status": job.get("status", ""),
+        "notes": job.get("notes", "")
+    }
+
+
+def to_objectid(id_str):
+    try:
+        return ObjectId(id_str)
+    except Exception:
+        return None
 
 
 # -------------------------
@@ -51,25 +51,21 @@ init_db()
 # -------------------------
 @app.route("/signup", methods=["POST"])
 def signup():
-
     data = request.json
-    username = data["username"]
-    password = data["password"]
-    role = data.get("role", "client")  # Default to client if not specified
+    username = data.get("username")
+    password = data.get("password")
+    role = data.get("role", "client")
 
-    conn = get_db()
+    if not username or not password:
+        return jsonify({"error": "Username and password are required"}), 400
 
     try:
-        conn.execute(
-            "INSERT INTO users (username,password,role) VALUES (?,?,?)",
-            (username,password,role)
-        )
-        conn.commit()
-        conn.close()
-        return jsonify({"message":"User created"})
+        users_col.insert_one({"username": username, "password": password, "role": role})
+        return jsonify({"message": "User created"})
+    except errors.DuplicateKeyError:
+        return jsonify({"error": "User already exists"}), 400
     except Exception as e:
-        conn.close()
-        return jsonify({"error":"User already exists"}),400
+        return jsonify({"error": str(e)}), 500
 
 
 # -------------------------
@@ -77,28 +73,15 @@ def signup():
 # -------------------------
 @app.route("/login", methods=["POST"])
 def login():
-
     data = request.json
-    username = data["username"]
-    password = data["password"]
+    username = data.get("username")
+    password = data.get("password")
 
-    conn = get_db()
-
-    user = conn.execute(
-        "SELECT * FROM users WHERE username=? AND password=?",
-        (username,password)
-    ).fetchone()
-    
-    conn.close()
-
+    user = users_col.find_one({"username": username, "password": password})
     if user:
-        return jsonify({
-            "message":"Login successful",
-            "role": user["role"],
-            "user_id": user["id"]
-        })
+        return jsonify({"message": "Login successful", "role": user.get("role", "client"), "user_id": str(user["_id"])})
     else:
-        return jsonify({"error":"Invalid credentials"}),401
+        return jsonify({"error": "Invalid credentials"}), 401
 
 
 # -------------------------
@@ -106,32 +89,29 @@ def login():
 # -------------------------
 @app.route("/jobs", methods=["POST"])
 def add_job():
+    data = request.json
+    user_id = data.get("user_id")
+    company = data.get("company")
+    job_role = data.get("role")
+    status = data.get("status")
 
-    try:
-        data = request.json
-        user_id = data.get("user_id")
-        company = data.get("company")
-        role = data.get("role")
-        status = data.get("status")
+    if not user_id or not company or not job_role or not status:
+        return jsonify({"error": "Missing required fields"}), 400
 
-        # Validate inputs
-        if not user_id or not company or not role or not status:
-            return jsonify({"error": "Missing required fields"}), 400
+    user_obj_id = to_objectid(user_id)
+    if not user_obj_id:
+        return jsonify({"error": "Invalid user_id"}), 400
 
-        conn = get_db()
+    job_doc = {
+        "user_id": user_obj_id,
+        "company": company,
+        "role": job_role,
+        "status": status,
+        "notes": data.get("notes", "")
+    }
 
-        conn.execute(
-            "INSERT INTO jobs (user_id, company, role, status) VALUES (?,?,?,?)",
-            (int(user_id), company, role, status)
-        )
-
-        conn.commit()
-        conn.close()
-
-        return jsonify({"message":"Job added"})
-    except Exception as e:
-        print(f"Error adding job: {str(e)}")  # Log to server console
-        return jsonify({"error": str(e)}), 400
+    result = jobs_col.insert_one(job_doc)
+    return jsonify({"message": "Job added", "id": str(result.inserted_id)})
 
 
 # -------------------------
@@ -139,130 +119,120 @@ def add_job():
 # -------------------------
 @app.route("/jobs", methods=["GET"])
 def get_jobs():
+    user_id = request.args.get("user_id")
+    user_role = request.args.get("role", "client")
 
-    user_id = request.args.get('user_id')
-    user_role = request.args.get('role', 'client')  # Default to client if not specified
-
-    conn = get_db()
-
-    if user_role == 'admin':
-        # Admin sees all jobs
-        jobs = conn.execute("SELECT * FROM jobs").fetchall()
+    if user_role == "admin":
+        jobs = jobs_col.find()
     else:
-        # Client sees only their jobs
-        jobs = conn.execute("SELECT * FROM jobs WHERE user_id = ?", (user_id,)).fetchall()
+        user_obj_id = to_objectid(user_id)
+        if not user_obj_id:
+            return jsonify({"error": "Invalid user_id"}), 400
+        jobs = jobs_col.find({"user_id": user_obj_id})
 
-    return jsonify([dict(job) for job in jobs])
+    return jsonify([serialize_job(job) for job in jobs])
 
 
 # -------------------------
-# UPDATE JOB (NEW)
+# UPDATE JOB
 # -------------------------
-@app.route("/jobs/<int:id>", methods=["PUT"])
-def update_job(id):
-
+@app.route("/jobs/<job_id>", methods=["PUT"])
+def update_job(job_id):
     data = request.json
-    user_id = data["user_id"]
+    user_id = data.get("user_id")
     user_role = data.get("user_role", "client")
-    company = data["company"]
-    job_role = data["job_role"]
-    status = data["status"]
+    company = data.get("company")
+    job_role = data.get("job_role")
+    status = data.get("status")
 
-    conn = get_db()
+    if not user_id or not company or not job_role or not status:
+        return jsonify({"error": "Missing required fields"}), 400
 
-    # Check if user owns this job or is admin
-    if user_role != 'admin':
-        job = conn.execute("SELECT user_id FROM jobs WHERE id = ?", (id,)).fetchone()
-        if not job or job["user_id"] != int(user_id):
-            return jsonify({"error": "Unauthorized"}), 403
+    job_obj_id = to_objectid(job_id)
+    user_obj_id = to_objectid(user_id)
+    if not job_obj_id or not user_obj_id:
+        return jsonify({"error": "Invalid id"}), 400
 
-    conn.execute(
-        "UPDATE jobs SET company=?, role=?, status=? WHERE id=?",
-        (company, job_role, status, id)
-    )
+    job = jobs_col.find_one({"_id": job_obj_id})
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
 
-    conn.commit()
+    if user_role != "admin" and job.get("user_id") != user_obj_id:
+        return jsonify({"error": "Unauthorized"}), 403
 
-    return jsonify({"message":"Job updated"})
+    jobs_col.update_one({"_id": job_obj_id}, {"$set": {"company": company, "role": job_role, "status": status}})
+    return jsonify({"message": "Job updated"})
 
 
 # -------------------------
 # DELETE JOB
 # -------------------------
-@app.route("/jobs/<int:id>", methods=["DELETE"])
-def delete_job(id):
+@app.route("/jobs/<job_id>", methods=["DELETE"])
+def delete_job(job_id):
+    user_id = request.args.get("user_id")
+    user_role = request.args.get("role", "client")
 
-    user_id = request.args.get('user_id')
-    user_role = request.args.get('role', 'client')
+    job_obj_id = to_objectid(job_id)
+    user_obj_id = to_objectid(user_id)
 
-    conn = get_db()
+    if not job_obj_id or (user_role != "admin" and not user_obj_id):
+        return jsonify({"error": "Invalid id"}), 400
 
-    # Check if user owns this job or is admin
-    if user_role != 'admin':
-        job = conn.execute("SELECT user_id FROM jobs WHERE id = ?", (id,)).fetchone()
-        if not job or job["user_id"] != int(user_id):
-            return jsonify({"error": "Unauthorized"}), 403
+    job = jobs_col.find_one({"_id": job_obj_id})
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
 
-    conn.execute(
-        "DELETE FROM jobs WHERE id=?",
-        (id,)
-    )
+    if user_role != "admin" and job.get("user_id") != user_obj_id:
+        return jsonify({"error": "Unauthorized"}), 403
 
-    conn.commit()
-
-    return jsonify({"message":"Deleted"})
+    jobs_col.delete_one({"_id": job_obj_id})
+    return jsonify({"message": "Deleted"})
 
 
 # -------------------------
 # JOB NOTES
 # -------------------------
-@app.route("/jobs/<int:id>/notes", methods=["GET"])
-def get_job_notes(id):
-    """Get notes for a specific job"""
-    
-    user_id = request.args.get('user_id')
-    user_role = request.args.get('role', 'client')
-    
-    conn = get_db()
-    
-    # Check if user owns this job or is admin
-    if user_role != 'admin':
-        job = conn.execute("SELECT user_id FROM jobs WHERE id = ?", (id,)).fetchone()
-        if not job or job["user_id"] != int(user_id):
-            conn.close()
-            return jsonify({"error": "Unauthorized"}), 403
-    
-    job = conn.execute("SELECT notes FROM jobs WHERE id = ?", (id,)).fetchone()
-    conn.close()
-    
-    if job:
-        return jsonify({"notes": job["notes"] or ""})
-    else:
+@app.route("/jobs/<job_id>/notes", methods=["GET"])
+def get_job_notes(job_id):
+    user_id = request.args.get("user_id")
+    user_role = request.args.get("role", "client")
+
+    job_obj_id = to_objectid(job_id)
+    user_obj_id = to_objectid(user_id)
+    if not job_obj_id:
+        return jsonify({"error": "Invalid job id"}), 400
+
+    job = jobs_col.find_one({"_id": job_obj_id})
+    if not job:
         return jsonify({"error": "Job not found"}), 404
 
+    if user_role != "admin" and job.get("user_id") != user_obj_id:
+        return jsonify({"error": "Unauthorized"}), 403
 
-@app.route("/jobs/<int:id>/notes", methods=["POST"])
-def update_job_notes(id):
-    """Update notes for a specific job"""
-    
+    notes = job.get("notes", "")
+    return jsonify({"notes": notes})
+
+
+@app.route("/jobs/<job_id>/notes", methods=["POST"])
+def update_job_notes(job_id):
     data = request.json
-    user_id = data.get('user_id')
-    user_role = data.get('role', 'client')
-    notes = data.get('notes', '')
-    
-    conn = get_db()
-    
-    # Check if user owns this job or is admin
-    if user_role != 'admin':
-        job = conn.execute("SELECT user_id FROM jobs WHERE id = ?", (id,)).fetchone()
-        if not job or job["user_id"] != int(user_id):
-            conn.close()
-            return jsonify({"error": "Unauthorized"}), 403
-    
-    conn.execute("UPDATE jobs SET notes=? WHERE id=?", (notes, id))
-    conn.commit()
-    conn.close()
-    
+    user_id = data.get("user_id")
+    user_role = data.get("role", "client")
+    notes = data.get("notes", "")
+
+    job_obj_id = to_objectid(job_id)
+    user_obj_id = to_objectid(user_id)
+    if not job_obj_id:
+        return jsonify({"error": "Invalid job id"}), 400
+
+    job = jobs_col.find_one({"_id": job_obj_id})
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+
+    if user_role != "admin" and job.get("user_id") != user_obj_id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    jobs_col.update_one({"_id": job_obj_id}, {"$set": {"notes": notes}})
     return jsonify({"message": "Notes updated"})
 
 
@@ -271,42 +241,8 @@ def update_job_notes(id):
 # -------------------------
 @app.route("/reset-db", methods=["POST"])
 def reset_db():
-
-    # Close existing connection
-    conn = get_db()
-    conn.close()
-
-    # Delete the database file
-    import os
-    if os.path.exists("jobs.db"):
-        os.remove("jobs.db")
-
-    # Recreate tables
-    conn = get_db()
-
-    conn.execute("""
-    CREATE TABLE users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT,
-        role TEXT DEFAULT 'client'
-    )
-    """)
-
-    conn.execute("""
-    CREATE TABLE jobs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        company TEXT,
-        role TEXT,
-        status TEXT,
-        notes TEXT DEFAULT ''
-    )
-    """)
-
-    conn.commit()
-    conn.close()
-
+    users_col.delete_many({})
+    jobs_col.delete_many({})
     return jsonify({"message": "Database reset successfully"})
 
 
@@ -315,77 +251,50 @@ def reset_db():
 # -------------------------
 @app.route("/admin/jobs", methods=["GET"])
 def admin_get_jobs():
-    """Admin gets all jobs from all users"""
-    
-    user_role = request.args.get('role', 'client')
-    
-    # Check if user is admin
-    if user_role != 'admin':
+    user_role = request.args.get("role", "client")
+    if user_role != "admin":
         return jsonify({"error": "Unauthorized"}), 403
-    
-    conn = get_db()
-    jobs = conn.execute("SELECT * FROM jobs").fetchall()
-    conn.close()
-    
-    return jsonify([dict(job) for job in jobs])
+
+    jobs = jobs_col.find()
+    return jsonify([serialize_job(job) for job in jobs])
 
 
 @app.route("/admin/clients", methods=["GET"])
 def admin_get_clients():
-    """Admin gets all clients"""
-    
-    user_role = request.args.get('role', 'client')
-    
-    # Check if user is admin
-    if user_role != 'admin':
+    user_role = request.args.get("role", "client")
+    if user_role != "admin":
         return jsonify({"error": "Unauthorized"}), 403
-    
-    conn = get_db()
-    clients = conn.execute("SELECT id, username, role FROM users WHERE role='client'").fetchall()
-    conn.close()
-    
-    return jsonify([dict(client) for client in clients])
+
+    clients = users_col.find({"role": "client"}, {"password": 0})
+    return jsonify([serialize_user(client) for client in clients])
 
 
-@app.route("/admin/clients/<int:client_id>", methods=["DELETE"])
+@app.route("/admin/clients/<client_id>", methods=["DELETE"])
 def admin_delete_client(client_id):
-    """Admin deletes a client and all their jobs"""
-    
-    user_role = request.args.get('role', 'client')
-    
-    # Check if user is admin
-    if user_role != 'admin':
+    user_role = request.args.get("role", "client")
+    if user_role != "admin":
         return jsonify({"error": "Unauthorized"}), 403
-    
-    conn = get_db()
-    
-    # Delete all jobs for this client
-    conn.execute("DELETE FROM jobs WHERE user_id=?", (client_id,))
-    
-    # Delete the client
-    conn.execute("DELETE FROM users WHERE id=?", (client_id,))
-    
-    conn.commit()
-    conn.close()
-    
+
+    client_obj_id = to_objectid(client_id)
+    if not client_obj_id:
+        return jsonify({"error": "Invalid client id"}), 400
+
+    jobs_col.delete_many({"user_id": client_obj_id})
+    users_col.delete_one({"_id": client_obj_id})
     return jsonify({"message": "Client deleted successfully"})
 
 
-@app.route("/admin/jobs/<int:job_id>", methods=["DELETE"])
+@app.route("/admin/jobs/<job_id>", methods=["DELETE"])
 def admin_delete_job(job_id):
-    """Admin deletes any job"""
-    
-    user_role = request.args.get('role', 'client')
-    
-    # Check if user is admin
-    if user_role != 'admin':
+    user_role = request.args.get("role", "client")
+    if user_role != "admin":
         return jsonify({"error": "Unauthorized"}), 403
-    
-    conn = get_db()
-    conn.execute("DELETE FROM jobs WHERE id=?", (job_id,))
-    conn.commit()
-    conn.close()
-    
+
+    job_obj_id = to_objectid(job_id)
+    if not job_obj_id:
+        return jsonify({"error": "Invalid job id"}), 400
+
+    jobs_col.delete_one({"_id": job_obj_id})
     return jsonify({"message": "Job deleted successfully"})
 
 
