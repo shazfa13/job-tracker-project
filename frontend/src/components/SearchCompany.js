@@ -11,6 +11,8 @@ function SearchCompany() {
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem("darkMode") === "true";
   });
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   const navigate = useNavigate();
 
@@ -52,6 +54,7 @@ function SearchCompany() {
   const cardBg = darkMode ? "#374151" : "#ffffff";
   const borderColor = darkMode ? "#4b5563" : "#e2e8f0";
   const primaryColor = "#3b82f6";
+  const secondaryColor = darkMode ? "#6b7280" : "#64748b";
 
   return (
     <>
@@ -327,7 +330,10 @@ function SearchCompany() {
                           padding: "16px"
                         }}>
                           <button
-                            onClick={() => navigate(`/job-tracker`)}
+                            onClick={() => {
+                              setSelectedJob(job);
+                              setShowDetails(true);
+                            }}
                             style={{
                               padding: "8px 16px",
                               background: primaryColor,
@@ -375,6 +381,293 @@ function SearchCompany() {
           </div>
         </div>
       </div>
+
+      {/* Job Details Modal */}
+      {showDetails && selectedJob && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0, 0, 0, 0.5)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 1000,
+          padding: "20px"
+        }}>
+          <div style={{
+            background: cardBg,
+            borderRadius: "16px",
+            padding: "30px",
+            maxWidth: "600px",
+            width: "100%",
+            maxHeight: "80vh",
+            overflow: "auto",
+            border: `1px solid ${borderColor}`,
+            boxShadow: darkMode ? "0 25px 50px rgba(0,0,0,0.5)" : "0 25px 50px rgba(0,0,0,0.2)"
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "25px"
+            }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: "24px",
+                fontWeight: "bold",
+                color: textColor
+              }}>
+                📋 Job Details
+              </h2>
+              <button
+                onClick={() => setShowDetails(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "24px",
+                  cursor: "pointer",
+                  color: secondaryColor,
+                  padding: "5px",
+                  borderRadius: "8px",
+                  transition: "all 0.2s ease"
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.background = darkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.background = "none";
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Job Information */}
+            <div style={{
+              display: "grid",
+              gap: "20px"
+            }}>
+              <div style={{
+                background: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
+                padding: "20px",
+                borderRadius: "12px",
+                border: `1px solid ${borderColor}`
+              }}>
+                <h3 style={{
+                  margin: "0 0 15px 0",
+                  fontSize: "18px",
+                  fontWeight: "600",
+                  color: textColor,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px"
+                }}>
+                  🏢 Company Information
+                </h3>
+                <div style={{ display: "grid", gap: "10px" }}>
+                  <div>
+                    <strong style={{ color: secondaryColor, fontSize: "14px" }}>Company:</strong>
+                    <p style={{ margin: "5px 0 0 0", color: textColor, fontSize: "16px" }}>
+                      {selectedJob.company}
+                    </p>
+                  </div>
+                  <div>
+                    <strong style={{ color: secondaryColor, fontSize: "14px" }}>Position:</strong>
+                    <p style={{ margin: "5px 0 0 0", color: textColor, fontSize: "16px" }}>
+                      {selectedJob.role}
+                    </p>
+                  </div>
+                  <div>
+                    <strong style={{ color: secondaryColor, fontSize: "14px" }}>Status:</strong>
+                    <div style={{ marginTop: "5px" }}>
+                      <span style={{
+                        padding: "6px 12px",
+                        borderRadius: "20px",
+                        fontSize: "12px",
+                        fontWeight: "500",
+                        background: getStatusColor(selectedJob.status),
+                        color: "white"
+                      }}>
+                        {selectedJob.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {selectedJob.notes && (
+                <div style={{
+                  background: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
+                  padding: "20px",
+                  borderRadius: "12px",
+                  border: `1px solid ${borderColor}`
+                }}>
+                  <h3 style={{
+                    margin: "0 0 15px 0",
+                    fontSize: "18px",
+                    fontWeight: "600",
+                    color: textColor,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px"
+                  }}>
+                    📝 Notes
+                  </h3>
+                  <p style={{
+                    margin: 0,
+                    color: textColor,
+                    fontSize: "16px",
+                    lineHeight: "1.6",
+                    whiteSpace: "pre-wrap"
+                  }}>
+                    {selectedJob.notes}
+                  </p>
+                </div>
+              )}
+
+              {selectedJob.career_page && (
+                <div style={{
+                  background: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
+                  padding: "20px",
+                  borderRadius: "12px",
+                  border: `1px solid ${borderColor}`
+                }}>
+                  <h3 style={{
+                    margin: "0 0 15px 0",
+                    fontSize: "18px",
+                    fontWeight: "600",
+                    color: textColor,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px"
+                  }}>
+                    🔗 Career Page
+                  </h3>
+                  <a
+                    href={selectedJob.career_page}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: primaryColor,
+                      textDecoration: "none",
+                      fontSize: "16px",
+                      fontWeight: "500",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "8px 16px",
+                      border: `1px solid ${primaryColor}`,
+                      borderRadius: "8px",
+                      transition: "all 0.2s ease"
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.background = primaryColor;
+                      e.target.style.color = "white";
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.background = "transparent";
+                      e.target.style.color = primaryColor;
+                    }}
+                  >
+                    Visit Career Page →
+                  </a>
+                </div>
+              )}
+
+              {selectedJob.follow_up && (
+                <div style={{
+                  background: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
+                  padding: "20px",
+                  borderRadius: "12px",
+                  border: `1px solid ${borderColor}`
+                }}>
+                  <h3 style={{
+                    margin: "0 0 15px 0",
+                    fontSize: "18px",
+                    fontWeight: "600",
+                    color: textColor,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px"
+                  }}>
+                    ⏰ Follow-up
+                  </h3>
+                  <p style={{
+                    margin: 0,
+                    color: textColor,
+                    fontSize: "16px"
+                  }}>
+                    {selectedJob.follow_up}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div style={{
+              display: "flex",
+              gap: "15px",
+              marginTop: "30px",
+              paddingTop: "20px",
+              borderTop: `1px solid ${borderColor}`
+            }}>
+              <button
+                onClick={() => {
+                  setShowDetails(false);
+                  navigate("/job-tracker");
+                }}
+                style={{
+                  flex: 1,
+                  padding: "12px 20px",
+                  background: primaryColor,
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  transition: "all 0.2s ease"
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.background = "#2563eb";
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.background = primaryColor;
+                }}
+              >
+                Edit in Job Tracker
+              </button>
+              <button
+                onClick={() => setShowDetails(false)}
+                style={{
+                  flex: 1,
+                  padding: "12px 20px",
+                  background: "transparent",
+                  color: textColor,
+                  border: `2px solid ${borderColor}`,
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  transition: "all 0.2s ease"
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.background = darkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.background = "transparent";
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 
