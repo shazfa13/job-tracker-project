@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import Navbar from "./Navbar";
 import { useNavigate } from "react-router-dom";
 
@@ -24,8 +25,12 @@ function ResumeBuilder() {
   });
 
   const [newSkill, setNewSkill] = useState("");
-
   const [activeSection, setActiveSection] = useState("personal");
+  const [resumes, setResumes] = useState([]);
+  const [currentResumeId, setCurrentResumeId] = useState(null);
+  const [resumeName, setResumeName] = useState("Untitled Resume");
+  const [isLoading, setIsLoading] = useState(false);
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,7 +39,51 @@ function ResumeBuilder() {
       navigate("/");
       return;
     }
+
+    // Load user resumes from API
+    loadUserResumes();
   }, [navigate]);
+
+  const loadUserResumes = async () => {
+    try {
+      const userId = localStorage.getItem("userId");
+      console.log("Loading resumes for user:", userId);
+      const response = await axios.get(`http://127.0.0.1:5000/resumes?user_id=${userId}`);
+      const userResumes = response.data;
+      console.log("Resumes loaded:", userResumes);
+      
+      setResumes(userResumes);
+      
+      if (userResumes.length > 0) {
+        // Load the most recently updated resume
+        const latestResume = userResumes[0];
+        setCurrentResumeId(latestResume.id);
+        setResumeName(latestResume.name);
+        setResumeData({
+          personalInfo: latestResume.personalInfo || {
+            fullName: "",
+            email: "",
+            phone: "",
+            location: "",
+            linkedin: "",
+            github: ""
+          },
+          summary: latestResume.summary || "",
+          experience: latestResume.experience || [],
+          education: latestResume.education || [],
+          skills: latestResume.skills || [],
+          projects: latestResume.projects || []
+        });
+      } else {
+        // No resumes found, start with new resume
+        createNewResume();
+      }
+    } catch (error) {
+      console.error("Error loading resumes:", error);
+      // If there's an error, start with new resume
+      createNewResume();
+    }
+  };
 
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;
@@ -162,6 +211,125 @@ function ResumeBuilder() {
       ...prev,
       projects: prev.projects.filter(proj => proj.id !== id)
     }));
+  };
+
+  const saveToLocalStorage = () => {
+    saveResume();
+  };
+
+  const saveSection = async (section) => {
+    await saveResume();
+    alert(`${section.charAt(0).toUpperCase() + section.slice(1)} saved successfully!`);
+  };
+
+  const saveResume = async () => {
+    setIsLoading(true);
+    try {
+      const userId = localStorage.getItem("userId");
+      console.log("Saving resume for user:", userId);
+      console.log("Current resume ID:", currentResumeId);
+      console.log("Resume data:", resumeData);
+      
+      if (currentResumeId && currentResumeId !== "new") {
+        // Update existing resume
+        console.log("Updating existing resume:", currentResumeId);
+        await axios.put(`http://127.0.0.1:5000/resumes/${currentResumeId}`, {
+          user_id: userId,
+          name: resumeName,
+          ...resumeData
+        });
+        alert("Resume updated successfully!");
+      } else {
+        // Create new resume
+        console.log("Creating new resume with name:", resumeName);
+        const response = await axios.post("http://127.0.0.1:5000/resumes", {
+          user_id: userId,
+          name: resumeName,
+          ...resumeData
+        });
+        console.log("Resume created:", response.data);
+        setCurrentResumeId(response.data.resume.id);
+        alert("Resume created successfully!");
+      }
+      
+      // Reload resumes list
+      await loadUserResumes();
+    } catch (error) {
+      console.error("Error saving resume:", error);
+      alert("Failed to save resume. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const createNewResume = () => {
+    // Don't clear currentResumeId immediately, let it be set when user saves
+    setCurrentResumeId("new");
+    setResumeName("Untitled Resume");
+    setResumeData({
+      personalInfo: {
+        fullName: "",
+        email: "",
+        phone: "",
+        location: "",
+        linkedin: "",
+        github: ""
+      },
+      summary: "",
+      experience: [],
+      education: [],
+      skills: [],
+      projects: []
+    });
+  };
+
+  const loadResume = async (resumeId) => {
+    try {
+      const resume = resumes.find(r => r.id === resumeId);
+      if (resume) {
+        setCurrentResumeId(resume.id);
+        setResumeName(resume.name);
+        setResumeData({
+          personalInfo: resume.personalInfo || {
+            fullName: "",
+            email: "",
+            phone: "",
+            location: "",
+            linkedin: "",
+            github: ""
+          },
+          summary: resume.summary || "",
+          experience: resume.experience || [],
+          education: resume.education || [],
+          skills: resume.skills || [],
+          projects: resume.projects || []
+        });
+      }
+    } catch (error) {
+      console.error("Error loading resume:", error);
+      alert("Failed to load resume. Please try again.");
+    }
+  };
+
+  const deleteResume = async (resumeId) => {
+    if (window.confirm("Are you sure you want to delete this resume?")) {
+      try {
+        const userId = localStorage.getItem("userId");
+        await axios.delete(`http://127.0.0.1:5000/resumes/${resumeId}?user_id=${userId}`);
+        
+        // If deleting current resume, create a new one
+        if (resumeId === currentResumeId) {
+          createNewResume();
+        }
+        
+        // Reload resumes list
+        await loadUserResumes();
+        alert("Resume deleted successfully!");
+      } catch (error) {
+        console.error("Error deleting resume:", error);
+        alert("Failed to delete resume. Please try again.");
+      }
+    }
   };
 
   const generateResume = () => {
@@ -295,7 +463,9 @@ function ResumeBuilder() {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "40px"
+            marginBottom: "40px",
+            flexWrap: "wrap",
+            gap: "20px"
           }}>
             <div>
               <h1 style={{
@@ -315,7 +485,111 @@ function ResumeBuilder() {
               </p>
             </div>
             
-            <div style={{ display: "flex", gap: "15px" }}>
+            <div style={{ display: "flex", gap: "15px", alignItems: "center", flexWrap: "wrap" }}>
+              {/* Resume Selector */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <label style={{ fontSize: "14px", fontWeight: "500", color: textColor }}>
+                  Current Resume:
+                </label>
+                <select
+                  value={currentResumeId === "new" ? "new" : (currentResumeId || "")}
+                  onChange={(e) => {
+                    const resumeId = e.target.value;
+                    if (resumeId === "new") {
+                      createNewResume();
+                    } else if (resumeId) {
+                      loadResume(resumeId);
+                    }
+                  }}
+                  style={{
+                    padding: "8px 12px",
+                    border: `1px solid ${borderColor}`,
+                    borderRadius: "8px",
+                    background: cardBg,
+                    color: textColor,
+                    fontSize: "14px",
+                    cursor: "pointer",
+                    minWidth: "200px"
+                  }}
+                >
+                  <option value="">Select Resume</option>
+                  <option value="new">➕ Create New Resume</option>
+                  {resumes.map(resume => (
+                    <option key={resume.id} value={resume.id}>
+                      {resume.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Resume Name Input */}
+              <input
+                type="text"
+                value={resumeName}
+                onChange={(e) => setResumeName(e.target.value)}
+                placeholder="Resume name"
+                style={{
+                  padding: "8px 12px",
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: "8px",
+                  background: cardBg,
+                  color: textColor,
+                  fontSize: "14px",
+                  minWidth: "150px"
+                }}
+              />
+
+              {/* Action Buttons */}
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button
+                  onClick={createNewResume}
+                  style={{
+                    padding: "10px 20px",
+                    background: primaryColor,
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    transition: "all 0.2s ease"
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.background = "#2563eb";
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.background = primaryColor;
+                  }}
+                >
+                  ➕ New Resume
+                </button>
+                
+                {currentResumeId && currentResumeId !== "new" && (
+                  <button
+                    onClick={() => deleteResume(currentResumeId)}
+                    style={{
+                      padding: "10px 20px",
+                      background: "#ef4444",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                      transition: "all 0.2s ease"
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.background = "#dc2626";
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.background = "#ef4444";
+                    }}
+                  >
+                    🗑️ Delete
+                  </button>
+                )}
+              </div>
+
               <button
                 onClick={generateResume}
                 style={{
@@ -387,7 +661,31 @@ function ResumeBuilder() {
             {/* Personal Information */}
             {activeSection === "personal" && (
               <div>
-                <h2 style={{ margin: "0 0 20px 0", color: textColor }}>Personal Information</h2>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                  <h2 style={{ margin: 0, color: textColor }}>Personal Information</h2>
+                  <button
+                    onClick={() => saveSection("personal information")}
+                    style={{
+                      padding: "10px 20px",
+                      background: "#10b981",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                      transition: "all 0.2s ease"
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.background = "#059669";
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.background = "#10b981";
+                    }}
+                  >
+                    💾 Save Personal Info
+                  </button>
+                </div>
                 <div style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
@@ -502,7 +800,31 @@ function ResumeBuilder() {
             {/* Summary */}
             {activeSection === "summary" && (
               <div>
-                <h2 style={{ margin: "0 0 20px 0", color: textColor }}>Professional Summary</h2>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                  <h2 style={{ margin: 0, color: textColor }}>Professional Summary</h2>
+                  <button
+                    onClick={() => saveSection("summary")}
+                    style={{
+                      padding: "10px 20px",
+                      background: "#10b981",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                      transition: "all 0.2s ease"
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.background = "#059669";
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.background = "#10b981";
+                    }}
+                  >
+                    💾 Save Summary
+                  </button>
+                </div>
                 <textarea
                   value={resumeData.summary}
                   onChange={(e) => setResumeData(prev => ({ ...prev, summary: e.target.value }))}
@@ -527,19 +849,43 @@ function ResumeBuilder() {
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                   <h2 style={{ margin: 0, color: textColor }}>Work Experience</h2>
-                  <button
-                    onClick={addExperience}
-                    style={{
-                      padding: "10px 20px",
-                      background: primaryColor,
-                      color: "white",
-                      border: "none",
-                      borderRadius: "8px",
-                      cursor: "pointer"
-                    }}
-                  >
-                    + Add Experience
-                  </button>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button
+                      onClick={() => saveSection("experience")}
+                      style={{
+                        padding: "10px 20px",
+                        background: "#10b981",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        fontWeight: "500",
+                        transition: "all 0.2s ease"
+                      }}
+                      onMouseOver={(e) => {
+                        e.target.style.background = "#059669";
+                      }}
+                      onMouseOut={(e) => {
+                        e.target.style.background = "#10b981";
+                      }}
+                    >
+                      💾 Save Experience
+                    </button>
+                    <button
+                      onClick={addExperience}
+                      style={{
+                        padding: "10px 20px",
+                        background: primaryColor,
+                        color: "white",
+                        border: "none",
+                        borderRadius: "8px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      + Add Experience
+                    </button>
+                  </div>
                 </div>
                 {resumeData.experience.map((exp) => (
                   <div key={exp.id} style={{
@@ -647,19 +993,43 @@ function ResumeBuilder() {
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                   <h2 style={{ margin: 0, color: textColor }}>Education</h2>
-                  <button
-                    onClick={addEducation}
-                    style={{
-                      padding: "10px 20px",
-                      background: primaryColor,
-                      color: "white",
-                      border: "none",
-                      borderRadius: "8px",
-                      cursor: "pointer"
-                    }}
-                  >
-                    + Add Education
-                  </button>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button
+                      onClick={() => saveSection("education")}
+                      style={{
+                        padding: "10px 20px",
+                        background: "#10b981",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        fontWeight: "500",
+                        transition: "all 0.2s ease"
+                      }}
+                      onMouseOver={(e) => {
+                        e.target.style.background = "#059669";
+                      }}
+                      onMouseOut={(e) => {
+                        e.target.style.background = "#10b981";
+                      }}
+                    >
+                      💾 Save Education
+                    </button>
+                    <button
+                      onClick={addEducation}
+                      style={{
+                        padding: "10px 20px",
+                        background: primaryColor,
+                        color: "white",
+                        border: "none",
+                        borderRadius: "8px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      + Add Education
+                    </button>
+                  </div>
                 </div>
                 {resumeData.education.map((edu) => (
                   <div key={edu.id} style={{
@@ -762,7 +1132,31 @@ function ResumeBuilder() {
             {/* Skills */}
             {activeSection === "skills" && (
               <div>
-                <h2 style={{ margin: "0 0 20px 0", color: textColor }}>Skills</h2>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                  <h2 style={{ margin: 0, color: textColor }}>Skills</h2>
+                  <button
+                    onClick={() => saveSection("skills")}
+                    style={{
+                      padding: "10px 20px",
+                      background: "#10b981",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                      transition: "all 0.2s ease"
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.background = "#059669";
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.background = "#10b981";
+                    }}
+                  >
+                    💾 Save Skills
+                  </button>
+                </div>
                 <div style={{
                   display: "flex",
                   gap: "15px",
@@ -855,19 +1249,43 @@ function ResumeBuilder() {
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                   <h2 style={{ margin: 0, color: textColor }}>Projects</h2>
-                  <button
-                    onClick={addProject}
-                    style={{
-                      padding: "10px 20px",
-                      background: primaryColor,
-                      color: "white",
-                      border: "none",
-                      borderRadius: "8px",
-                      cursor: "pointer"
-                    }}
-                  >
-                    + Add Project
-                  </button>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button
+                      onClick={() => saveSection("projects")}
+                      style={{
+                        padding: "10px 20px",
+                        background: "#10b981",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        fontWeight: "500",
+                        transition: "all 0.2s ease"
+                      }}
+                      onMouseOver={(e) => {
+                        e.target.style.background = "#059669";
+                      }}
+                      onMouseOut={(e) => {
+                        e.target.style.background = "#10b981";
+                      }}
+                    >
+                      💾 Save Projects
+                    </button>
+                    <button
+                      onClick={addProject}
+                      style={{
+                        padding: "10px 20px",
+                        background: primaryColor,
+                        color: "white",
+                        border: "none",
+                        borderRadius: "8px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      + Add Project
+                    </button>
+                  </div>
                 </div>
                 {resumeData.projects.map((proj) => (
                   <div key={proj.id} style={{
