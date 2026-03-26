@@ -10,14 +10,8 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointE
 function Dashboard() {
 
   const [jobs, setJobs] = useState([]);
-  const [company, setCompany] = useState("");
-  const [role, setRole] = useState("");
-  const [status, setStatus] = useState("");
-  const [editingId, setEditingId] = useState(null);
   const [userRole, setUserRole] = useState("");
   const [userId, setUserId] = useState("");
-  const [notesJobId, setNotesJobId] = useState(null);
-  const [notes, setNotes] = useState([]);
   const [darkMode, setDarkMode] = useState(localStorage.getItem("darkMode") === "true");
 
   const navigate = useNavigate();
@@ -49,95 +43,34 @@ function Dashboard() {
     setJobs(res.data);
   };
 
-  const deleteJob = async (id) => {
-
-    if (!window.confirm("Are you sure you want to delete this job?")) return;
-
-    await axios.delete(`http://127.0.0.1:5000/jobs/${id}?user_id=${userId}&role=${userRole}`);
-
-    fetchJobs();
-  };
-
-  const startEdit = (job) => {
-
-    setEditingId(job.id);
-    setCompany(job.company);
-    setRole(job.role);
-    setStatus(job.status);
-  };
-
-  const updateJob = async () => {
-
-    await axios.put(`http://127.0.0.1:5000/jobs/${editingId}`, {
-      user_id: userId,
-      user_role: userRole,
-      company,
-      job_role: role,
-      status
-    });
-
-    setEditingId(null);
-    setCompany("");
-    setRole("");
-    setStatus("");
-
-    fetchJobs();
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setCompany("");
-    setRole("");
-    setStatus("");
-  };
-
-  const openNotes = async (job) => {
-    setNotesJobId(job.id);
-    try {
-      const res = await axios.get(`http://127.0.0.1:5000/jobs/${job.id}/notes?user_id=${userId}&role=${userRole}`);
-      setNotes(res.data.notes);
-    } catch (error) {
-      setNotes("");
-    }
-  };
-
-  const saveNotes = async () => {
-    try {
-      await axios.post(`http://127.0.0.1:5000/jobs/${notesJobId}/notes`, {
-        user_id: userId,
-        role: userRole,
-        notes
-      });
-      alert("Notes saved successfully");
-      setNotesJobId(null);
-      setNotes("");
-    } catch (error) {
-      alert("Error saving notes");
-    }
-  };
-
-
-
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
     localStorage.setItem("darkMode", String(newDarkMode));
   };
 
+  // Enhanced status categories
+  const bookmarked = jobs.filter(j => j.status === "Bookmarked").length;
+  const applying = jobs.filter(j => j.status === "Applying").length;
   const applied = jobs.filter(j => j.status === "Applied").length;
-  const interview = jobs.filter(j => j.status === "Interview").length;
-  const offer = jobs.filter(j => j.status === "Offer").length;
+  const interviewing = jobs.filter(j => j.status === "Interview").length;
+  const negotiating = jobs.filter(j => j.status === "Negotiating").length;
+  const accepted = jobs.filter(j => j.status === "Accepted").length;
   const rejected = jobs.filter(j => j.status === "Rejected").length;
 
+  // Chart data with enhanced categories
   const chartData = {
-    labels: ["Applied", "Interview", "Offer", "Rejected"],
+    labels: ["Bookmarked", "Applying", "Applied", "Interviewing", "Negotiating", "Accepted", "Rejected"],
     datasets: [
       {
-        data: [applied, interview, offer, rejected],
+        data: [bookmarked, applying, applied, interviewing, negotiating, accepted, rejected],
         backgroundColor: [
-          "#3b82f6",
+          "#6b7280",
+          "#3b82f6", 
+          "#8b5cf6",
           "#f59e0b",
           "#10b981",
+          "#059669",
           "#ef4444"
         ]
       }
@@ -145,27 +78,39 @@ function Dashboard() {
   };
 
   const barChartData = {
-    labels: ["Applied", "Interview", "Offer", "Rejected"],
+    labels: ["Bookmarked", "Applying", "Applied", "Interviewing", "Negotiating", "Accepted", "Rejected"],
     datasets: [
       {
         label: "Job Count",
-        data: [applied, interview, offer, rejected],
+        data: [bookmarked, applying, applied, interviewing, negotiating, accepted, rejected],
         backgroundColor: [
-          "#3b82f6",
+          "#6b7280",
+          "#3b82f6", 
+          "#8b5cf6",
           "#f59e0b",
           "#10b981",
+          "#059669",
           "#ef4444"
         ]
       }
     ]
   };
 
+  // Weekly progress data
+  const weeklyData = [0, 0, 0, 0];
+  jobs.forEach((job, index) => {
+    if (index < 3) weeklyData[0]++;
+    else if (index < 6) weeklyData[1]++;
+    else if (index < 9) weeklyData[2]++;
+    else weeklyData[3]++;
+  });
+
   const lineChartData = {
     labels: ["Week 1", "Week 2", "Week 3", "Week 4"],
     datasets: [
       {
         label: "Total Applications",
-        data: [jobs.filter((j, i) => i < 3).length, jobs.filter((j, i) => i < 6).length, jobs.filter((j, i) => i < 9).length, jobs.length],
+        data: weeklyData,
         borderColor: "#3b82f6",
         backgroundColor: "rgba(59, 130, 246, 0.1)",
         tension: 0.4
@@ -178,6 +123,10 @@ function Dashboard() {
   const cardBg = darkMode ? "#374151" : "#ffffff";
   const borderColor = darkMode ? "#4b5563" : "#e5e7eb";
 
+  const totalApplications = jobs.length;
+  const activeApplications = jobs.filter(j => !["Accepted", "Rejected"].includes(j.status)).length;
+  const successRate = totalApplications > 0 ? Math.round((accepted / totalApplications) * 100) : 0;
+
   return (
     <>
       <Navbar />
@@ -189,213 +138,183 @@ function Dashboard() {
         transition: "all 0.3s ease"
       }}>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <h1>My Job Dashboard</h1>
-          <button 
-            onClick={toggleDarkMode}
-            style={{
-              padding: "10px 15px",
-              background: darkMode ? "#fbbf24" : "#1f2937",
-              color: darkMode ? "black" : "white",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer"
-            }}
-          >
-            {darkMode ? "☀️ Light" : "🌙 Dark"}
-          </button>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "40px" }}>
-          <div style={{ background: cardBg, padding: "20px", borderRadius: "10px", border: `1px solid ${borderColor}` }}>
-            <h3>Distribution (Pie Chart)</h3>
-            <div style={{ width: "100%", maxWidth: "400px" }}>
-              <Pie data={chartData} options={{ responsive: true }} />
-            </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "40px" }}>
+          <div>
+            <h1 style={{ fontSize: "32px", fontWeight: "bold", marginBottom: "8px" }}>Job Application Analytics</h1>
+            <p style={{ color: "#6b7280", margin: 0 }}>Track your job search progress and insights</p>
           </div>
-
-          <div style={{ background: cardBg, padding: "20px", borderRadius: "10px", border: `1px solid ${borderColor}` }}>
-            <h3>Count by Status (Bar Chart)</h3>
-            <div style={{ width: "100%", maxWidth: "400px" }}>
-              <Bar data={barChartData} options={{ responsive: true }} />
-            </div>
-          </div>
-        </div>
-
-        <div style={{ background: cardBg, padding: "20px", borderRadius: "10px", border: `1px solid ${borderColor}`, marginBottom: "40px" }}>
-          <h3>Application Progress (Line Chart)</h3>
-          <div style={{ width: "100%", maxWidth: "800px" }}>
-            <Line data={lineChartData} options={{ responsive: true }} />
-          </div>
-        </div>
-
-        <div style={{ background: cardBg, padding: "20px", borderRadius: "10px", border: `1px solid ${borderColor}`, marginBottom: "40px" }}>
-          <h2>Statistics</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "15px" }}>
-            <div style={{ padding: "15px", background: "#3b82f6", color: "white", borderRadius: "5px", textAlign: "center" }}>
-              <p style={{ margin: 0, fontSize: "14px" }}>Applied</p>
-              <p style={{ margin: "10px 0", fontSize: "24px", fontWeight: "bold" }}>{applied}</p>
-            </div>
-            <div style={{ padding: "15px", background: "#f59e0b", color: "white", borderRadius: "5px", textAlign: "center" }}>
-              <p style={{ margin: 0, fontSize: "14px" }}>Interview</p>
-              <p style={{ margin: "10px 0", fontSize: "24px", fontWeight: "bold" }}>{interview}</p>
-            </div>
-            <div style={{ padding: "15px", background: "#10b981", color: "white", borderRadius: "5px", textAlign: "center" }}>
-              <p style={{ margin: 0, fontSize: "14px" }}>Offer</p>
-              <p style={{ margin: "10px 0", fontSize: "24px", fontWeight: "bold" }}>{offer}</p>
-            </div>
-            <div style={{ padding: "15px", background: "#ef4444", color: "white", borderRadius: "5px", textAlign: "center" }}>
-              <p style={{ margin: 0, fontSize: "14px" }}>Rejected</p>
-              <p style={{ margin: "10px 0", fontSize: "24px", fontWeight: "bold" }}>{rejected}</p>
-            </div>
-          </div>
-        </div>
-
-        {editingId && (
-          <div style={{ background: cardBg, padding: "20px", borderRadius: "10px", border: `1px solid ${borderColor}`, marginBottom: "40px" }}>
-            <h2>Edit Job</h2>
-            <input
-              placeholder="Company"
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-              style={{ width: "100%", padding: "10px", marginBottom: "10px", borderRadius: "5px", border: `1px solid ${borderColor}`, background: bgColor, color: textColor }}
-            />
-            <input
-              placeholder="Role"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              style={{ width: "100%", padding: "10px", marginBottom: "10px", borderRadius: "5px", border: `1px solid ${borderColor}`, background: bgColor, color: textColor }}
-            />
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              style={{ width: "100%", padding: "10px", marginBottom: "10px", borderRadius: "5px", border: `1px solid ${borderColor}`, background: bgColor, color: textColor }}
-            >
-              <option value="">Status</option>
-              <option>Applied</option>
-              <option>Interview</option>
-              <option>Offer</option>
-              <option>Rejected</option>
-            </select>
+          <div style={{ display: "flex", gap: "15px" }}>
             <button 
-              onClick={updateJob}
-              style={{ padding: "10px 15px", background: "#2563eb", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", marginRight: "10px" }}
+              onClick={() => navigate("/job-tracker")}
+              style={{
+                padding: "12px 20px",
+                background: "#3b82f6",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500"
+              }}
             >
-              Update
+              View Job Tracker
             </button>
             <button 
-              onClick={cancelEdit}
-              style={{ padding: "10px 15px", background: "#6b7280", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}
+              onClick={toggleDarkMode}
+              style={{
+                padding: "12px 16px",
+                background: darkMode ? "#fbbf24" : "#1f2937",
+                color: darkMode ? "black" : "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer"
+              }}
             >
-              Cancel
+              {darkMode ? "☀️ Light" : "🌙 Dark"}
             </button>
           </div>
-        )}
+        </div>
 
-        <h2>My Jobs</h2>
-        <table border="1" cellPadding="10" style={{ width: "100%", borderCollapse: "collapse", borderColor: borderColor, background: cardBg }}>
-
-          <thead>
-            <tr style={{ background: darkMode ? "#4b5563" : "#e5e7eb" }}>
-              <th>Company</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-
-            {jobs.map((job) => (
-
-              <tr key={job.id} style={{ borderBottom: `1px solid ${borderColor}` }}>
-
-                <td>{job.company}</td>
-                <td>{job.role}</td>
-                <td>{job.status}</td>
-
-                <td style={{ display: "flex", gap: "5px" }}>
-
-                  <button 
-                    onClick={() => startEdit(job)}
-                    style={{ padding: "6px 10px", background: "#2563eb", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
-                  >
-                    Edit
-                  </button>
-
-                  <button 
-                    onClick={() => openNotes(job)}
-                    style={{ padding: "6px 10px", background: "#7c3aed", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
-                  >
-                    Notes
-                  </button>
-
-                  <button 
-                    onClick={() => deleteJob(job.id)}
-                    style={{ padding: "6px 10px", background: "#dc2626", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
-                  >
-                    Delete
-                  </button>
-
-                </td>
-
-              </tr>
-
-            ))}
-
-          </tbody>
-
-        </table>
-
-        {notesJobId && (
-          <div style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            background: "rgba(0,0,0,0.7)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 1000
-          }}>
-            <div style={{ background: cardBg, padding: "30px", borderRadius: "10px", width: "90%", maxWidth: "500px" }}>
-              <h2>Job Notes</h2>
-              <p style={{ fontSize: "12px", color: "#999" }}>Job ID: {notesJobId}</p>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add your notes here..."
-                style={{
-                  width: "100%",
-                  height: "200px",
-                  padding: "10px",
-                  borderRadius: "5px",
-                  border: `1px solid ${borderColor}`,
-                  background: bgColor,
-                  color: textColor,
-                  fontFamily: "Arial, sans-serif",
-                  marginBottom: "15px"
-                }}
-              />
-              <div style={{ display: "flex", gap: "10px" }}>
-                <button
-                  onClick={saveNotes}
-                  style={{ flex: 1, padding: "10px", background: "#10b981", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}
-                >
-                  Save Notes
-                </button>
-                <button
-                  onClick={() => { setNotesJobId(null); setNotes(""); }}
-                  style={{ flex: 1, padding: "10px", background: "#6b7280", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}
-                >
-                  Close
-                </button>
+        {/* Key Metrics */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "20px", marginBottom: "40px" }}>
+          <div style={{ background: cardBg, padding: "24px", borderRadius: "12px", border: `1px solid ${borderColor}` }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <p style={{ margin: 0, fontSize: "14px", color: "#6b7280", marginBottom: "8px" }}>Total Applications</p>
+                <p style={{ margin: 0, fontSize: "32px", fontWeight: "bold" }}>{totalApplications}</p>
               </div>
+              <div style={{ fontSize: "32px" }}>📊</div>
             </div>
           </div>
-        )}
+          
+          <div style={{ background: cardBg, padding: "24px", borderRadius: "12px", border: `1px solid ${borderColor}` }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <p style={{ margin: 0, fontSize: "14px", color: "#6b7280", marginBottom: "8px" }}>Active Applications</p>
+                <p style={{ margin: 0, fontSize: "32px", fontWeight: "bold" }}>{activeApplications}</p>
+              </div>
+              <div style={{ fontSize: "32px" }}>⏳</div>
+            </div>
+          </div>
+          
+          <div style={{ background: cardBg, padding: "24px", borderRadius: "12px", border: `1px solid ${borderColor}` }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <p style={{ margin: 0, fontSize: "14px", color: "#6b7280", marginBottom: "8px" }}>Success Rate</p>
+                <p style={{ margin: 0, fontSize: "32px", fontWeight: "bold" }}>{successRate}%</p>
+              </div>
+              <div style={{ fontSize: "32px" }}>🎯</div>
+            </div>
+          </div>
+          
+          <div style={{ background: cardBg, padding: "24px", borderRadius: "12px", border: `1px solid ${borderColor}` }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <p style={{ margin: 0, fontSize: "14px", color: "#6b7280", marginBottom: "8px" }}>Interviews</p>
+                <p style={{ margin: 0, fontSize: "32px", fontWeight: "bold" }}>{interviewing}</p>
+              </div>
+              <div style={{ fontSize: "32px" }}>💼</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Charts Grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: "30px", marginBottom: "40px" }}>
+          <div style={{ background: cardBg, padding: "30px", borderRadius: "12px", border: `1px solid ${borderColor}` }}>
+            <h3 style={{ margin: "0 0 20px 0", fontSize: "18px", fontWeight: "600" }}>Application Distribution</h3>
+            <div style={{ width: "100%", maxWidth: "400px", margin: "0 auto" }}>
+              <Pie data={chartData} options={{ 
+                responsive: true, 
+                plugins: {
+                  legend: {
+                    position: 'bottom',
+                  }
+                }
+              }} />
+            </div>
+          </div>
+
+          <div style={{ background: cardBg, padding: "30px", borderRadius: "12px", border: `1px solid ${borderColor}` }}>
+            <h3 style={{ margin: "0 0 20px 0", fontSize: "18px", fontWeight: "600" }}>Status Breakdown</h3>
+            <div style={{ width: "100%", maxWidth: "400px", margin: "0 auto" }}>
+              <Bar data={barChartData} options={{ 
+                responsive: true,
+                plugins: {
+                  legend: {
+                    display: false
+                  }
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    ticks: {
+                      stepSize: 1
+                    }
+                  }
+                }
+              }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Progress Timeline */}
+        <div style={{ background: cardBg, padding: "30px", borderRadius: "12px", border: `1px solid ${borderColor}`, marginBottom: "40px" }}>
+          <h3 style={{ margin: "0 0 20px 0", fontSize: "18px", fontWeight: "600" }}>Application Timeline</h3>
+          <div style={{ width: "100%", maxWidth: "800px", margin: "0 auto" }}>
+            <Line data={lineChartData} options={{ 
+              responsive: true,
+              plugins: {
+                legend: {
+                  display: true,
+                  position: 'top'
+                }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    stepSize: 1
+                  }
+                }
+              }
+            }} />
+          </div>
+        </div>
+
+        {/* Detailed Statistics */}
+        <div style={{ background: cardBg, padding: "30px", borderRadius: "12px", border: `1px solid ${borderColor}` }}>
+          <h3 style={{ margin: "0 0 20px 0", fontSize: "18px", fontWeight: "600" }}>Detailed Statistics</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "15px" }}>
+            <div style={{ padding: "20px", background: "#6b7280", color: "white", borderRadius: "8px", textAlign: "center" }}>
+              <p style={{ margin: 0, fontSize: "14px", marginBottom: "8px" }}>Bookmarked</p>
+              <p style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>{bookmarked}</p>
+            </div>
+            <div style={{ padding: "20px", background: "#3b82f6", color: "white", borderRadius: "8px", textAlign: "center" }}>
+              <p style={{ margin: 0, fontSize: "14px", marginBottom: "8px" }}>Applying</p>
+              <p style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>{applying}</p>
+            </div>
+            <div style={{ padding: "20px", background: "#8b5cf6", color: "white", borderRadius: "8px", textAlign: "center" }}>
+              <p style={{ margin: 0, fontSize: "14px", marginBottom: "8px" }}>Applied</p>
+              <p style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>{applied}</p>
+            </div>
+            <div style={{ padding: "20px", background: "#f59e0b", color: "white", borderRadius: "8px", textAlign: "center" }}>
+              <p style={{ margin: 0, fontSize: "14px", marginBottom: "8px" }}>Interviewing</p>
+              <p style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>{interviewing}</p>
+            </div>
+            <div style={{ padding: "20px", background: "#10b981", color: "white", borderRadius: "8px", textAlign: "center" }}>
+              <p style={{ margin: 0, fontSize: "14px", marginBottom: "8px" }}>Negotiating</p>
+              <p style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>{negotiating}</p>
+            </div>
+            <div style={{ padding: "20px", background: "#059669", color: "white", borderRadius: "8px", textAlign: "center" }}>
+              <p style={{ margin: 0, fontSize: "14px", marginBottom: "8px" }}>Accepted</p>
+              <p style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>{accepted}</p>
+            </div>
+            <div style={{ padding: "20px", background: "#ef4444", color: "white", borderRadius: "8px", textAlign: "center" }}>
+              <p style={{ margin: 0, fontSize: "14px", marginBottom: "8px" }}>Rejected</p>
+              <p style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>{rejected}</p>
+            </div>
+          </div>
+        </div>
 
       </div>
     </>

@@ -8,15 +8,16 @@ import { useNavigate } from "react-router-dom";
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 function AdminDashboard() {
-
   const [jobs, setJobs] = useState([]);
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem("darkMode") === "true";
+  });
 
   const navigate = useNavigate();
 
   useEffect(() => {
-
     const loggedIn = localStorage.getItem("loggedIn");
     const role = localStorage.getItem("userRole");
 
@@ -26,7 +27,6 @@ function AdminDashboard() {
     }
 
     fetchAllData();
-
   }, [navigate]);
 
   const fetchAllData = async () => {
@@ -64,6 +64,12 @@ function AdminDashboard() {
     }
   };
 
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    localStorage.setItem("darkMode", String(newDarkMode));
+  };
+
   // Analytics calculations
   const applied = jobs.filter(j => j.status === "Applied").length;
   const interview = jobs.filter(j => j.status === "Interview").length;
@@ -87,118 +93,588 @@ function AdminDashboard() {
 
   const clientJobs = selectedClient ? jobs.filter(j => j.user_id === selectedClient.id) : [];
 
+  const bgColor = darkMode ? "#1f2937" : "#f8fafc";
+  const textColor = darkMode ? "#f3f4f6" : "#1f2937";
+  const cardBg = darkMode ? "#374151" : "#ffffff";
+  const borderColor = darkMode ? "#4b5563" : "#e2e8f0";
+  const primaryColor = "#3b82f6";
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Applied":
+        return "#3b82f6";
+      case "Interview":
+        return "#f59e0b";
+      case "Offer":
+        return "#10b981";
+      case "Rejected":
+        return "#ef4444";
+      default:
+        return "#6b7280";
+    }
+  };
+
   return (
     <>
       <Navbar />
-      <div style={{ padding: "40px" }}>
-
-        <h1>Admin Dashboard - Full Analytics</h1>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "40px" }}>
+      <div style={{
+        background: bgColor,
+        color: textColor,
+        minHeight: "100vh",
+        padding: "40px 20px",
+        transition: "all 0.3s ease"
+      }}>
+        
+        <div style={{
+          maxWidth: "1400px",
+          margin: "0 auto"
+        }}>
           
-          <div>
-            <h2>Overall Statistics</h2>
-            <p><strong>Total Clients:</strong> {clients.length}</p>
-            <p><strong>Total Jobs:</strong> {jobs.length}</p>
-            <p><strong>Applied:</strong> {applied}</p>
-            <p><strong>Interview:</strong> {interview}</p>
-            <p><strong>Offer:</strong> {offer}</p>
-            <p><strong>Rejected:</strong> {rejected}</p>
-          </div>
-
-          <div style={{ width: "300px" }}>
-            <Pie data={chartData} />
-          </div>
-
-        </div>
-
-        <br />
-        <hr />
-        <br />
-
-        <h2>Manage Clients</h2>
-        <table border="1" cellPadding="10" style={{ width: "100%", marginBottom: "40px" }}>
-          <thead>
-            <tr>
-              <th>Client ID</th>
-              <th>Username</th>
-              <th>Total Jobs</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clients.map((client) => {
-              const clientJobCount = jobs.filter(j => j.user_id === client.id).length;
-              return (
-                <tr key={client.id}>
-                  <td>{client.id}</td>
-                  <td>{client.username}</td>
-                  <td>{clientJobCount}</td>
-                  <td>
-                    <button 
-                      onClick={() => setSelectedClient(client)}
-                      style={{ marginRight: "10px" }}
-                    >
-                      View Jobs
-                    </button>
-                    <button 
-                      onClick={() => deleteClient(client.id)}
-                      style={{ background: "#dc2626", color: "white", border: "none", padding: "8px 12px", cursor: "pointer", borderRadius: "5px" }}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-
-        {selectedClient && (
-          <>
-            <h2>Jobs for {selectedClient.username}</h2>
-            <button 
-              onClick={() => setSelectedClient(null)}
-              style={{ marginBottom: "10px", background: "#6b7280" }}
+          {/* Header */}
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "40px"
+          }}>
+            <div>
+              <h1 style={{
+                margin: 0,
+                fontSize: "32px",
+                fontWeight: "bold",
+                color: textColor
+              }}>
+                📊 Admin Dashboard
+              </h1>
+              <p style={{
+                margin: "8px 0 0 0",
+                color: darkMode ? "#94a3b8" : "#64748b",
+                fontSize: "16px"
+              }}>
+                Full analytics and client management
+              </p>
+            </div>
+            
+            <button
+              onClick={toggleDarkMode}
+              style={{
+                padding: "10px 15px",
+                background: darkMode ? "#fbbf24" : "#1f2937",
+                color: darkMode ? "black" : "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer"
+              }}
             >
-              Clear Selection
+              {darkMode ? "☀️" : "🌙"}
             </button>
-            <table border="1" cellPadding="10" style={{ width: "100%" }}>
-              <thead>
-                <tr>
-                  <th>Company</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {clientJobs.length > 0 ? (
-                  clientJobs.map((job) => (
-                    <tr key={job.id}>
-                      <td>{job.company}</td>
-                      <td>{job.role}</td>
-                      <td>{job.status}</td>
-                      <td>
-                        <button 
-                          onClick={() => deleteJob(job.id)}
-                          style={{ background: "#dc2626", color: "white", border: "none", padding: "6px 10px", cursor: "pointer", borderRadius: "4px" }}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" style={{ textAlign: "center" }}>No jobs found</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </>
-        )}
+          </div>
 
+          {/* Stats Cards */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+            gap: "20px",
+            marginBottom: "40px"
+          }}>
+            <div style={{
+              background: cardBg,
+              padding: "25px",
+              borderRadius: "16px",
+              border: `1px solid ${borderColor}`,
+              boxShadow: darkMode ? "0 4px 6px rgba(0,0,0,0.3)" : "0 4px 6px rgba(0,0,0,0.1)"
+            }}>
+              <div style={{
+                fontSize: "14px",
+                color: darkMode ? "#94a3b8" : "#64748b",
+                marginBottom: "8px"
+              }}>
+                Total Clients
+              </div>
+              <div style={{
+                fontSize: "32px",
+                fontWeight: "bold",
+                color: primaryColor
+              }}>
+                {clients.length}
+              </div>
+            </div>
+
+            <div style={{
+              background: cardBg,
+              padding: "25px",
+              borderRadius: "16px",
+              border: `1px solid ${borderColor}`,
+              boxShadow: darkMode ? "0 4px 6px rgba(0,0,0,0.3)" : "0 4px 6px rgba(0,0,0,0.1)"
+            }}>
+              <div style={{
+                fontSize: "14px",
+                color: darkMode ? "#94a3b8" : "#64748b",
+                marginBottom: "8px"
+              }}>
+                Total Jobs
+              </div>
+              <div style={{
+                fontSize: "32px",
+                fontWeight: "bold",
+                color: primaryColor
+              }}>
+                {jobs.length}
+              </div>
+            </div>
+
+            <div style={{
+              background: cardBg,
+              padding: "25px",
+              borderRadius: "16px",
+              border: `1px solid ${borderColor}`,
+              boxShadow: darkMode ? "0 4px 6px rgba(0,0,0,0.3)" : "0 4px 6px rgba(0,0,0,0.1)"
+            }}>
+              <div style={{
+                fontSize: "14px",
+                color: darkMode ? "#94a3b8" : "#64748b",
+                marginBottom: "8px"
+              }}>
+                Applied
+              </div>
+              <div style={{
+                fontSize: "32px",
+                fontWeight: "bold",
+                color: "#8b5cf6"
+              }}>
+                {applied}
+              </div>
+            </div>
+
+            <div style={{
+              background: cardBg,
+              padding: "25px",
+              borderRadius: "16px",
+              border: `1px solid ${borderColor}`,
+              boxShadow: darkMode ? "0 4px 6px rgba(0,0,0,0.3)" : "0 4px 6px rgba(0,0,0,0.1)"
+            }}>
+              <div style={{
+                fontSize: "14px",
+                color: darkMode ? "#94a3b8" : "#64748b",
+                marginBottom: "8px"
+              }}>
+                Interviews
+              </div>
+              <div style={{
+                fontSize: "32px",
+                fontWeight: "bold",
+                color: "#f59e0b"
+              }}>
+                {interview}
+              </div>
+            </div>
+
+            <div style={{
+              background: cardBg,
+              padding: "25px",
+              borderRadius: "16px",
+              border: `1px solid ${borderColor}`,
+              boxShadow: darkMode ? "0 4px 6px rgba(0,0,0,0.3)" : "0 4px 6px rgba(0,0,0,0.1)"
+            }}>
+              <div style={{
+                fontSize: "14px",
+                color: darkMode ? "#94a3b8" : "#64748b",
+                marginBottom: "8px"
+              }}>
+                Offers
+              </div>
+              <div style={{
+                fontSize: "32px",
+                fontWeight: "bold",
+                color: "#10b981"
+              }}>
+                {offer}
+              </div>
+            </div>
+
+            <div style={{
+              background: cardBg,
+              padding: "25px",
+              borderRadius: "16px",
+              border: `1px solid ${borderColor}`,
+              boxShadow: darkMode ? "0 4px 6px rgba(0,0,0,0.3)" : "0 4px 6px rgba(0,0,0,0.1)"
+            }}>
+              <div style={{
+                fontSize: "14px",
+                color: darkMode ? "#94a3b8" : "#64748b",
+                marginBottom: "8px"
+              }}>
+                Rejected
+              </div>
+              <div style={{
+                fontSize: "32px",
+                fontWeight: "bold",
+                color: "#ef4444"
+              }}>
+                {rejected}
+              </div>
+            </div>
+          </div>
+
+          {/* Chart and Table Section */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 2fr",
+            gap: "30px",
+            marginBottom: "40px"
+          }}>
+            <div style={{
+              background: cardBg,
+              padding: "30px",
+              borderRadius: "16px",
+              border: `1px solid ${borderColor}`,
+              boxShadow: darkMode ? "0 4px 6px rgba(0,0,0,0.3)" : "0 4px 6px rgba(0,0,0,0.1)"
+            }}>
+              <h2 style={{
+                margin: "0 0 20px 0",
+                color: textColor,
+                fontSize: "20px",
+                fontWeight: "600"
+              }}>
+                📈 Application Status Distribution
+              </h2>
+              <div style={{ height: "300px", display: "flex", justifyContent: "center" }}>
+                <Pie data={chartData} />
+              </div>
+            </div>
+
+            <div style={{
+              background: cardBg,
+              padding: "30px",
+              borderRadius: "16px",
+              border: `1px solid ${borderColor}`,
+              boxShadow: darkMode ? "0 4px 6px rgba(0,0,0,0.3)" : "0 4px 6px rgba(0,0,0,0.1)"
+            }}>
+              <h2 style={{
+                margin: "0 0 20px 0",
+                color: textColor,
+                fontSize: "20px",
+                fontWeight: "600"
+              }}>
+                👥 Manage Clients
+              </h2>
+              <div style={{ overflowX: "auto", maxHeight: "400px" }}>
+                <table style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  fontSize: "14px"
+                }}>
+                  <thead>
+                    <tr style={{
+                      background: darkMode ? "#1f2937" : "#f8fafc"
+                    }}>
+                      <th style={{
+                        padding: "16px",
+                        textAlign: "left",
+                        fontWeight: "600",
+                        borderBottom: `2px solid ${borderColor}`,
+                        color: textColor
+                      }}>
+                        Client ID
+                      </th>
+                      <th style={{
+                        padding: "16px",
+                        textAlign: "left",
+                        fontWeight: "600",
+                        borderBottom: `2px solid ${borderColor}`,
+                        color: textColor
+                      }}>
+                        Username
+                      </th>
+                      <th style={{
+                        padding: "16px",
+                        textAlign: "left",
+                        fontWeight: "600",
+                        borderBottom: `2px solid ${borderColor}`,
+                        color: textColor
+                      }}>
+                        Total Jobs
+                      </th>
+                      <th style={{
+                        padding: "16px",
+                        textAlign: "left",
+                        fontWeight: "600",
+                        borderBottom: `2px solid ${borderColor}`,
+                        color: textColor
+                      }}>
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {clients.map((client) => {
+                      const clientJobCount = jobs.filter(j => j.user_id === client.id).length;
+                      return (
+                        <tr key={client.id} style={{
+                          borderBottom: `1px solid ${borderColor}`,
+                          transition: "all 0.2s ease"
+                        }}>
+                          <td style={{
+                            padding: "16px",
+                            fontWeight: "500"
+                          }}>
+                            {client.id.slice(-8)}
+                          </td>
+                          <td style={{
+                            padding: "16px",
+                            color: darkMode ? "#94a3b8" : "#64748b"
+                          }}>
+                            {client.username}
+                          </td>
+                          <td style={{
+                            padding: "16px"
+                          }}>
+                            <span style={{
+                              padding: "4px 8px",
+                              borderRadius: "12px",
+                              fontSize: "12px",
+                              fontWeight: "500",
+                              background: primaryColor,
+                              color: "white"
+                            }}>
+                              {clientJobCount}
+                            </span>
+                          </td>
+                          <td style={{
+                            padding: "16px"
+                          }}>
+                            <div style={{ display: "flex", gap: "8px" }}>
+                              <button
+                                onClick={() => setSelectedClient(client)}
+                                style={{
+                                  padding: "8px 16px",
+                                  background: primaryColor,
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: "6px",
+                                  cursor: "pointer",
+                                  fontSize: "12px",
+                                  fontWeight: "500",
+                                  transition: "all 0.2s ease"
+                                }}
+                                onMouseOver={(e) => {
+                                  e.target.style.background = "#2563eb";
+                                }}
+                                onMouseOut={(e) => {
+                                  e.target.style.background = primaryColor;
+                                }}
+                              >
+                                👁 View Jobs
+                              </button>
+                              <button
+                                onClick={() => deleteClient(client.id)}
+                                style={{
+                                  padding: "8px 16px",
+                                  background: "#ef4444",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: "6px",
+                                  cursor: "pointer",
+                                  fontSize: "12px",
+                                  fontWeight: "500",
+                                  transition: "all 0.2s ease"
+                                }}
+                                onMouseOver={(e) => {
+                                  e.target.style.background = "#dc2626";
+                                }}
+                                onMouseOut={(e) => {
+                                  e.target.style.background = "#ef4444";
+                                }}
+                              >
+                                🗑️ Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* Selected Client Jobs */}
+          {selectedClient && (
+            <div style={{
+              background: cardBg,
+              padding: "30px",
+              borderRadius: "16px",
+              border: `1px solid ${borderColor}`,
+              boxShadow: darkMode ? "0 4px 6px rgba(0,0,0,0.3)" : "0 4px 6px rgba(0,0,0,0.1)"
+            }}>
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "20px"
+              }}>
+                <h2 style={{
+                  margin: 0,
+                  color: textColor,
+                  fontSize: "20px",
+                  fontWeight: "600"
+                }}>
+                  📋 Jobs for {selectedClient.username}
+                </h2>
+                <button
+                  onClick={() => setSelectedClient(null)}
+                  style={{
+                    padding: "10px 20px",
+                    background: "#6b7280",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    transition: "all 0.2s ease"
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.background = "#4b5563";
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.background = "#6b7280";
+                  }}
+                >
+                  ✖ Clear Selection
+                </button>
+              </div>
+
+              <div style={{ overflowX: "auto", maxHeight: "400px" }}>
+                <table style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  fontSize: "14px"
+                }}>
+                  <thead>
+                    <tr style={{
+                      background: darkMode ? "#1f2937" : "#f8fafc"
+                    }}>
+                      <th style={{
+                        padding: "16px",
+                        textAlign: "left",
+                        fontWeight: "600",
+                        borderBottom: `2px solid ${borderColor}`,
+                        color: textColor
+                      }}>
+                        Company
+                      </th>
+                      <th style={{
+                        padding: "16px",
+                        textAlign: "left",
+                        fontWeight: "600",
+                        borderBottom: `2px solid ${borderColor}`,
+                        color: textColor
+                      }}>
+                        Position
+                      </th>
+                      <th style={{
+                        padding: "16px",
+                        textAlign: "left",
+                        fontWeight: "600",
+                        borderBottom: `2px solid ${borderColor}`,
+                        color: textColor
+                      }}>
+                        Status
+                      </th>
+                      <th style={{
+                        padding: "16px",
+                        textAlign: "left",
+                        fontWeight: "600",
+                        borderBottom: `2px solid ${borderColor}`,
+                        color: textColor
+                      }}>
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {clientJobs.length > 0 ? (
+                      clientJobs.map((job) => (
+                        <tr key={job.id} style={{
+                          borderBottom: `1px solid ${borderColor}`,
+                          transition: "all 0.2s ease"
+                        }}>
+                          <td style={{
+                            padding: "16px",
+                            fontWeight: "500"
+                          }}>
+                            {job.company}
+                          </td>
+                          <td style={{
+                            padding: "16px",
+                            color: darkMode ? "#94a3b8" : "#64748b"
+                          }}>
+                            {job.role}
+                          </td>
+                          <td style={{
+                            padding: "16px"
+                          }}>
+                            <span style={{
+                              padding: "6px 12px",
+                              borderRadius: "20px",
+                              fontSize: "12px",
+                              fontWeight: "500",
+                              background: getStatusColor(job.status),
+                              color: "white"
+                            }}>
+                              {job.status}
+                            </span>
+                          </td>
+                          <td style={{
+                            padding: "16px"
+                          }}>
+                            <button
+                              onClick={() => deleteJob(job.id)}
+                              style={{
+                                padding: "8px 16px",
+                                background: "#ef4444",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                fontSize: "12px",
+                                fontWeight: "500",
+                                transition: "all 0.2s ease"
+                              }}
+                              onMouseOver={(e) => {
+                                e.target.style.background = "#dc2626";
+                              }}
+                              onMouseOut={(e) => {
+                                e.target.style.background = "#ef4444";
+                              }}
+                            >
+                              🗑️ Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="4" style={{
+                          padding: "40px 20px",
+                          textAlign: "center",
+                          color: darkMode ? "#94a3b8" : "#64748b"
+                        }}>
+                          <div style={{ fontSize: "24px", marginBottom: "10px" }}>📭</div>
+                          <p style={{ margin: 0, fontSize: "16px" }}>
+                            No jobs found for this client
+                          </p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

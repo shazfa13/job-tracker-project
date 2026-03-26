@@ -33,7 +33,11 @@ function serializeJob(job) {
     company: job.company || '',
     role: job.role || '',
     status: job.status || '',
-    notes: job.notes || ''
+    notes: job.notes || '',
+    deadline: job.deadline || '',
+    date_applied: job.date_applied || '',
+    followup: job.followup || '',
+    url: job.url || ''
   };
 }
 
@@ -71,7 +75,7 @@ app.post('/login', async (req, res) => {
 });
 
 app.post('/jobs', async (req, res) => {
-  const { user_id, company, role, status, notes = '' } = req.body;
+  const { user_id, company, role, status, notes = '', deadline = '', date_applied = '', followup = '', url = '' } = req.body;
   if (!user_id || !company || !role || !status) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
@@ -79,7 +83,7 @@ app.post('/jobs', async (req, res) => {
   if (!userObjId) {
     return res.status(400).json({ error: 'Invalid user_id' });
   }
-  const result = await jobsCol.insertOne({ user_id: userObjId, company, role, status, notes });
+  const result = await jobsCol.insertOne({ user_id: userObjId, company, role, status, notes, deadline, date_applied, followup, url });
   return res.json({ message: 'Job added', id: result.insertedId.toString() });
 });
 
@@ -97,7 +101,7 @@ app.get('/jobs', async (req, res) => {
 
 app.put('/jobs/:jobId', async (req, res) => {
   const { jobId } = req.params;
-  const { user_id, user_role = 'client', company, job_role, status } = req.body;
+  const { user_id, user_role = 'client', company, job_role, status, deadline, date_applied, followup, notes, url } = req.body;
 
   if (!user_id || !company || !job_role || !status) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -116,7 +120,14 @@ app.put('/jobs/:jobId', async (req, res) => {
     return res.status(403).json({ error: 'Unauthorized' });
   }
 
-  await jobsCol.updateOne({ _id: jobObjId }, { $set: { company, role: job_role, status } });
+  const updateData = { company, role: job_role, status };
+  if (deadline !== undefined) updateData.deadline = deadline;
+  if (date_applied !== undefined) updateData.date_applied = date_applied;
+  if (followup !== undefined) updateData.followup = followup;
+  if (notes !== undefined) updateData.notes = notes;
+  if (url !== undefined) updateData.url = url;
+
+  await jobsCol.updateOne({ _id: jobObjId }, { $set: updateData });
   return res.json({ message: 'Job updated' });
 });
 
@@ -221,9 +232,65 @@ app.delete('/admin/clients/:clientId', async (req, res) => {
   return res.json({ message: 'Client deleted successfully' });
 });
 
+app.post('/analyze-skills', async (req, res) => {
+  const { description } = req.body;
+  
+  if (!description) {
+    return res.status(400).json({ error: 'Description is required' });
+  }
+
+  try {
+    // Simple keyword-based skill extraction (in production, integrate with actual AI service)
+    const commonSkills = [
+      "JavaScript", "Python", "Java", "React", "Node.js", "Angular", "Vue.js",
+      "HTML", "CSS", "TypeScript", "MongoDB", "SQL", "PostgreSQL",
+      "AWS", "Azure", "Google Cloud", "Docker", "Kubernetes", "Git",
+      "Agile", "Scrum", "Project Management", "Communication", "Leadership",
+      "Machine Learning", "Data Science", "Analytics", "Marketing", "Sales",
+      "Customer Service", "Problem Solving", "Critical Thinking", "Teamwork",
+      "REST APIs", "GraphQL", "Microservices", "DevOps", "CI/CD",
+      "Testing", "Unit Testing", "Integration Testing", "UI/UX Design",
+      "Figma", "Adobe Creative Suite", "Content Writing", "SEO", "SEM"
+    ];
+
+    const foundSkills = [];
+    const lowerText = description.toLowerCase();
+    
+    commonSkills.forEach(skill => {
+      if (lowerText.includes(skill.toLowerCase()) || 
+          lowerText.includes(skill.toLowerCase().replace(/\./g, "")) ||
+          lowerText.includes(skill.toLowerCase().replace(/\s/g, ""))) {
+        if (!foundSkills.includes(skill)) {
+          foundSkills.push(skill);
+        }
+      }
+    });
+
+    // Add contextual skills based on keywords
+    if (lowerText.includes("senior") || lowerText.includes("lead")) {
+      foundSkills.push("Leadership", "Mentoring");
+    }
+    if (lowerText.includes("remote")) {
+      foundSkills.push("Remote Collaboration", "Time Management");
+    }
+    if (lowerText.includes("team")) {
+      foundSkills.push("Teamwork", "Collaboration");
+    }
+
+    const uniqueSkills = [...new Set(foundSkills)].slice(0, 12);
+    
+    return res.json({ 
+      skills: uniqueSkills,
+      count: uniqueSkills.length
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to analyze skills' });
+  }
+});
+
 app.delete('/admin/jobs/:jobId', async (req, res) => {
   const { jobId } = req.params;
-  const { role = 'client' } = req.query;
+  const { role } = req.query;
   if (role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
 
   const jobObjId = toObjectId(jobId);
