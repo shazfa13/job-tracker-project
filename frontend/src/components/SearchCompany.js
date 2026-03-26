@@ -297,12 +297,14 @@ function SearchCompany() {
                   <tbody>
                     {filteredJobs.map((job, index) => (
                       <tr key={job.id} style={{
+                        background: darkMode ? "#374151" : "#ffffff",
                         borderBottom: `1px solid ${borderColor}`,
                         transition: "all 0.2s ease"
                       }}>
                         <td style={{
                           padding: "16px",
-                          fontWeight: "500"
+                          fontWeight: "500",
+                          color: textColor
                         }}>
                           {job.company}
                         </td>
