@@ -13,6 +13,8 @@ function SearchCompany() {
   });
   const [selectedJob, setSelectedJob] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState("All");
 
   const navigate = useNavigate();
 
@@ -32,16 +34,25 @@ function SearchCompany() {
   }, [navigate]);
 
   const fetchJobs = async () => {
+    setIsLoading(true);
     const role = localStorage.getItem("userRole");
     const id = localStorage.getItem("userId");
 
-    const res = await axios.get(`http://127.0.0.1:5000/jobs?user_id=${id}&role=${role}`);
-    setJobs(res.data);
+    try {
+      const res = await axios.get(`http://127.0.0.1:5000/jobs?user_id=${id}&role=${role}`);
+      setJobs(res.data);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const filteredJobs = jobs.filter((job) => {
-    return job.company.toLowerCase().includes(searchCompany.toLowerCase());
+    const matchesCompany = job.company.toLowerCase().includes(searchCompany.toLowerCase());
+    const matchesStatus = selectedStatus === "All" || job.status === selectedStatus;
+    return matchesCompany && matchesStatus;
   });
+
+  const statuses = ["All", ...new Set(jobs.map((job) => job.status).filter(Boolean))];
 
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;
@@ -59,324 +70,138 @@ function SearchCompany() {
   return (
     <>
       <Navbar />
-      <div style={{
-        background: bgColor,
-        color: textColor,
-        minHeight: "100vh",
-        padding: "40px 20px",
-        transition: "all 0.3s ease"
-      }}>
+      <div
+        className="app-page ui-page search-page"
+        style={{
+          background: bgColor,
+          color: textColor,
+          transition: "all 0.3s ease"
+        }}
+      >
         
-        <div style={{
-          maxWidth: "1200px",
-          margin: "0 auto"
-        }}>
+        <div className="app-page-content">
           
           {/* Header */}
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "40px"
-          }}>
+          <div className="page-header">
             <div>
-              <h1 style={{
-                margin: 0,
-                fontSize: "32px",
-                fontWeight: "bold",
-                color: textColor
-              }}>
+              <h1 className="page-title" style={{ color: textColor }}>
                 🔍 Search Company
               </h1>
-              <p style={{
-                margin: "8px 0 0 0",
-                color: darkMode ? "#94a3b8" : "#64748b",
-                fontSize: "16px"
-              }}>
+              <p className="page-subtitle" style={{ color: darkMode ? "#94a3b8" : "#64748b" }}>
                 Find and filter your job applications by company
               </p>
             </div>
             
             <button
               onClick={toggleDarkMode}
-              style={{
-                padding: "10px 15px",
-                background: darkMode ? "#fbbf24" : "#1f2937",
-                color: darkMode ? "black" : "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer"
-              }}
+              className="btn btn-ghost"
             >
-              {darkMode ? "☀️" : "🌙"}
+              {darkMode ? "Light" : "Dark"}
             </button>
           </div>
 
-          {/* Search Section */}
-          <div style={{
-            background: cardBg,
-            padding: "30px",
-            borderRadius: "16px",
-            border: `1px solid ${borderColor}`,
-            marginBottom: "30px",
-            boxShadow: darkMode ? "0 4px 6px rgba(0,0,0,0.3)" : "0 4px 6px rgba(0,0,0,0.1)"
-          }}>
-            <div style={{
-              display: "flex",
-              gap: "15px",
-              alignItems: "center",
-              marginBottom: "20px"
-            }}>
-              <div style={{ flex: 1 }}>
-                <label style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  color: textColor
-                }}>
-                  Search by Company Name:
-                </label>
-                <div style={{
-                  display: "flex",
-                  gap: "10px"
-                }}>
+          <div className="search-shell glass-panel" style={{ background: cardBg, borderColor }}>
+            <div className="search-top">
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                <div className="search-input-wrap" style={{ flex: 1, minWidth: "260px" }}>
+                  <span className="search-icon">⌕</span>
                   <input
                     type="text"
-                    placeholder="Enter company name..."
+                    placeholder="Search by company name..."
                     value={searchCompany}
                     onChange={(e) => setSearchCompany(e.target.value)}
-                    style={{
-                      flex: 1,
-                      padding: "12px 16px",
-                      border: `1px solid ${borderColor}`,
-                      borderRadius: "8px",
-                      background: darkMode ? "#1f2937" : "#ffffff",
-                      color: textColor,
-                      fontSize: "16px",
-                      outline: "none",
-                      transition: "all 0.2s ease"
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = primaryColor;
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = borderColor;
-                    }}
+                    className="form-control search-main-input"
+                    style={{ borderColor, background: darkMode ? "#1f2937" : "#ffffff", color: textColor }}
                   />
-                  <button
-                    onClick={() => setSearchCompany("")}
-                    style={{
-                      padding: "12px 20px",
-                      background: "#6b7280",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "8px",
-                      cursor: "pointer",
-                      fontSize: "14px",
-                      fontWeight: "500",
-                      transition: "all 0.2s ease"
-                    }}
-                    onMouseOver={(e) => {
-                      e.target.style.background = "#4b5563";
-                    }}
-                    onMouseOut={(e) => {
-                      e.target.style.background = "#6b7280";
-                    }}
-                  >
-                    Clear
-                  </button>
-                  <button
-                    onClick={() => console.log(filteredJobs)}
-                    style={{
-                      padding: "12px 20px",
-                      background: primaryColor,
-                      color: "white",
-                      border: "none",
-                      borderRadius: "8px",
-                      cursor: "pointer",
-                      fontSize: "14px",
-                      fontWeight: "500",
-                      transition: "all 0.2s ease"
-                    }}
-                    onMouseOver={(e) => {
-                      e.target.style.background = "#2563eb";
-                    }}
-                    onMouseOut={(e) => {
-                      e.target.style.background = primaryColor;
-                    }}
-                  >
-                    Search
-                  </button>
                 </div>
+                <button
+                  onClick={() => setSearchCompany("")}
+                  className="btn btn-secondary"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={() => console.log(filteredJobs)}
+                  className="btn gradient-btn"
+                >
+                  Search
+                </button>
+              </div>
+
+              <div className="chip-row">
+                {statuses.map((status) => (
+                  <button
+                    key={status}
+                    className={`chip-btn ${selectedStatus === status ? "active" : ""}`}
+                    onClick={() => setSelectedStatus(status)}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "12px 14px",
+                background: darkMode ? "#1f2937" : "#f8fafc",
+                borderRadius: "10px",
+                border: `1px solid ${borderColor}`,
+                color: darkMode ? "#94a3b8" : "#64748b",
+                fontSize: "14px"
+              }}>
+                <div><strong>Total Jobs:</strong> {jobs.length}</div>
+                <div><strong>Filtered Results:</strong> {filteredJobs.length}</div>
               </div>
             </div>
 
-            {/* Results Summary */}
-            <div style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "15px",
-              background: darkMode ? "#1f2937" : "#f8fafc",
-              borderRadius: "8px",
-              border: `1px solid ${borderColor}`
-            }}>
-              <div style={{
-                fontSize: "14px",
-                color: darkMode ? "#94a3b8" : "#64748b"
-              }}>
-                <strong>Total Jobs:</strong> {jobs.length}
+            {isLoading ? (
+              <div className="search-grid">
+                {[1, 2, 3, 4, 5, 6].map((item) => (
+                  <div key={item} className="skeleton-card" />
+                ))}
               </div>
-              <div style={{
-                fontSize: "14px",
-                color: darkMode ? "#94a3b8" : "#64748b"
-              }}>
-                <strong>Filtered Results:</strong> {filteredJobs.length}
-              </div>
-            </div>
-          </div>
-
-          {/* Results Table */}
-          <div style={{
-            background: cardBg,
-            borderRadius: "16px",
-            border: `1px solid ${borderColor}`,
-            overflow: "hidden",
-            boxShadow: darkMode ? "0 4px 6px rgba(0,0,0,0.3)" : "0 4px 6px rgba(0,0,0,0.1)"
-          }}>
-            {filteredJobs.length > 0 ? (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  fontSize: "14px"
-                }}>
-                  <thead>
-                    <tr style={{
-                      background: darkMode ? "#1f2937" : "#f8fafc"
-                    }}>
-                      <th style={{
-                        padding: "16px",
-                        textAlign: "left",
-                        fontWeight: "600",
-                        borderBottom: `2px solid ${borderColor}`,
-                        color: textColor
-                      }}>
-                        Company
-                      </th>
-                      <th style={{
-                        padding: "16px",
-                        textAlign: "left",
-                        fontWeight: "600",
-                        borderBottom: `2px solid ${borderColor}`,
-                        color: textColor
-                      }}>
-                        Position
-                      </th>
-                      <th style={{
-                        padding: "16px",
-                        textAlign: "left",
-                        fontWeight: "600",
-                        borderBottom: `2px solid ${borderColor}`,
-                        color: textColor
-                      }}>
-                        Status
-                      </th>
-                      <th style={{
-                        padding: "16px",
-                        textAlign: "left",
-                        fontWeight: "600",
-                        borderBottom: `2px solid ${borderColor}`,
-                        color: textColor
-                      }}>
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredJobs.map((job, index) => (
-                      <tr key={job.id} style={{
-                        background: darkMode ? "#374151" : "#ffffff",
-                        borderBottom: `1px solid ${borderColor}`,
-                        transition: "all 0.2s ease"
-                      }}>
-                        <td style={{
-                          padding: "16px",
-                          fontWeight: "500",
-                          color: textColor
-                        }}>
-                          {job.company}
-                        </td>
-                        <td style={{
-                          padding: "16px",
-                          color: darkMode ? "#94a3b8" : "#64748b"
-                        }}>
-                          {job.role}
-                        </td>
-                        <td style={{
-                          padding: "16px"
-                        }}>
-                          <span style={{
-                            padding: "6px 12px",
-                            borderRadius: "20px",
-                            fontSize: "12px",
-                            fontWeight: "500",
-                            background: getStatusColor(job.status),
-                            color: "white"
-                          }}>
-                            {job.status}
-                          </span>
-                        </td>
-                        <td style={{
-                          padding: "16px"
-                        }}>
-                          <button
-                            onClick={() => {
-                              setSelectedJob(job);
-                              setShowDetails(true);
-                            }}
-                            style={{
-                              padding: "8px 16px",
-                              background: primaryColor,
-                              color: "white",
-                              border: "none",
-                              borderRadius: "6px",
-                              cursor: "pointer",
-                              fontSize: "12px",
-                              fontWeight: "500",
-                              transition: "all 0.2s ease"
-                            }}
-                            onMouseOver={(e) => {
-                              e.target.style.background = "#2563eb";
-                            }}
-                            onMouseOut={(e) => {
-                              e.target.style.background = primaryColor;
-                            }}
-                          >
-                            View Details
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            ) : filteredJobs.length > 0 ? (
+              <div className="search-grid">
+                {filteredJobs.map((job, index) => (
+                  <article
+                    key={job.id}
+                    className="result-card"
+                    style={{
+                      background: darkMode ? "#374151" : "#ffffff",
+                      borderColor,
+                      animationDelay: `${index * 0.05}s`
+                    }}
+                  >
+                    <div className="result-logo">{(job.company || "J").slice(0, 1).toUpperCase()}</div>
+                    <h3 style={{ margin: "0 0 6px", color: textColor }}>{job.company}</h3>
+                    <p style={{ margin: "0 0 8px", color: darkMode ? "#cbd5e1" : "#475569", fontWeight: 600 }}>{job.role}</p>
+                    <p style={{ margin: 0, color: darkMode ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
+                      Status: <span style={{ color: getStatusColor(job.status), fontWeight: 700 }}>{job.status}</span>
+                    </p>
+                    <div className="result-actions">
+                      <button
+                        onClick={() => {
+                          setSelectedJob(job);
+                          setShowDetails(true);
+                        }}
+                        className="btn gradient-btn"
+                      >
+                        View
+                      </button>
+                    </div>
+                  </article>
+                ))}
               </div>
             ) : (
-              <div style={{
-                padding: "60px 20px",
-                textAlign: "center",
-                color: darkMode ? "#94a3b8" : "#64748b"
-              }}>
-                <div style={{ fontSize: "48px", marginBottom: "20px" }}>🔍</div>
-                <h3 style={{ margin: "0 0 10px 0", color: textColor }}>
-                  No jobs found
-                </h3>
-                <p style={{ margin: 0, fontSize: "16px" }}>
-                  {searchCompany 
-                    ? `No jobs found for "${searchCompany}"`
-                    : "Enter a company name to search for jobs"
-                  }
+              <div className="empty-state" style={{ color: darkMode ? "#94a3b8" : "#64748b" }}>
+                <div style={{ fontSize: "48px", marginBottom: "8px" }}>🧭</div>
+                <h3 style={{ color: textColor }}>No results found</h3>
+                <p>
+                  {searchCompany
+                    ? `No jobs found for "${searchCompany}" with current filters.`
+                    : "Start typing a company name to see matching jobs."}
                 </p>
               </div>
             )}
@@ -386,19 +211,7 @@ function SearchCompany() {
 
       {/* Job Details Modal */}
       {showDetails && selectedJob && (
-        <div style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "rgba(0, 0, 0, 0.5)",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          zIndex: 1000,
-          padding: "20px"
-        }}>
+        <div className="modal-overlay">
           <div style={{
             background: cardBg,
             borderRadius: "16px",
@@ -622,47 +435,15 @@ function SearchCompany() {
                   setShowDetails(false);
                   navigate("/job-tracker");
                 }}
-                style={{
-                  flex: 1,
-                  padding: "12px 20px",
-                  background: primaryColor,
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  transition: "all 0.2s ease"
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.background = "#2563eb";
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.background = primaryColor;
-                }}
+                className="btn btn-primary"
+                style={{ flex: 1 }}
               >
                 Edit in Job Tracker
               </button>
               <button
                 onClick={() => setShowDetails(false)}
-                style={{
-                  flex: 1,
-                  padding: "12px 20px",
-                  background: "transparent",
-                  color: textColor,
-                  border: `2px solid ${borderColor}`,
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  transition: "all 0.2s ease"
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.background = darkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.background = "transparent";
-                }}
+                className="btn btn-ghost"
+                style={{ flex: 1, color: textColor, borderColor }}
               >
                 Close
               </button>

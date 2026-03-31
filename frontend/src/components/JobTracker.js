@@ -13,6 +13,8 @@ function JobTracker() {
   const [editingJob, setEditingJob] = useState(null);
   const [notesJobId, setNotesJobId] = useState(null);
   const [notes, setNotes] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [sortBy, setSortBy] = useState("newest");
   const [editForm, setEditForm] = useState({
     company: "",
     role: "",
@@ -158,25 +160,53 @@ function JobTracker() {
     { name: "Accepted", count: jobs.filter(j => j.status === "Accepted").length, color: "#059669" }
   ];
 
-  const filteredJobs = jobs.filter(job => 
-    job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    job.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredJobs = jobs
+    .filter(job => {
+      const matchesSearch = job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.role.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "All" || job.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      if (sortBy === "company") {
+        return a.company.localeCompare(b.company);
+      }
+      if (sortBy === "role") {
+        return a.role.localeCompare(b.role);
+      }
+      if (sortBy === "deadline") {
+        return (a.deadline || "").localeCompare(b.deadline || "");
+      }
+      return Number(b.id) - Number(a.id);
+    });
+
+  const statusOptions = ["All", "Bookmarked", "Applying", "Applied", "Interview", "Negotiating", "Accepted", "Rejected"];
+
+  const getStatusClass = (status) => {
+    if (status === "Applied") return "status-badge status-applied";
+    if (status === "Interview") return "status-badge status-interview";
+    if (status === "Accepted") return "status-badge status-accepted";
+    if (status === "Rejected") return "status-badge status-rejected";
+    return "status-badge status-default";
+  };
 
   return (
     <>
       <Navbar />
-      <div style={{ 
-        background: bgColor,
-        color: textColor,
-        minHeight: "100vh",
-        transition: "all 0.3s ease"
-      }}>
+      <div
+        className="app-page ui-page job-tracker-page"
+        style={{
+          background: bgColor,
+          color: textColor,
+          transition: "all 0.3s ease"
+        }}
+      >
+        <div className="app-page-content tracker-shell">
         {/* Navigation Tabs */}
-        <div style={{ 
+        <div className="tracker-header glass-panel" style={{ 
           background: headerBg,
           borderBottom: `1px solid ${borderColor}`,
-          padding: "0 40px"
+          padding: "0 24px"
         }}>
           <div style={{ display: "flex", alignItems: "center", height: "60px" }}>
             <div style={{ display: "flex", gap: "30px" }}>
@@ -199,14 +229,7 @@ function JobTracker() {
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "20px" }}>
             <button 
               onClick={toggleDarkMode}
-              style={{
-                padding: "8px 12px",
-                background: darkMode ? "#fbbf24" : "#1f2937",
-                color: darkMode ? "black" : "white",
-                border: "none",
-                borderRadius: "5px",
-                cursor: "pointer"
-              }}
+              className="btn ghost-btn"
             >
               {darkMode ? "☀️" : "🌙"}
             </button>
@@ -214,17 +237,12 @@ function JobTracker() {
         </div>
 
         {/* Stage Progress Bar */}
-        <div style={{ padding: "40px 40px 20px" }}>
+        <div className="tracker-progress glass-panel" style={{ padding: "24px 24px 16px" }}>
           <div style={{ display: "flex", gap: "20px", alignItems: "center", overflowX: "auto" }}>
             {stages.map((stage, index) => (
               <div key={stage.name} style={{ display: "flex", alignItems: "center", minWidth: "120px" }}>
-                <div style={{ 
+                <div className="tracker-stage-pill" style={{ 
                   background: stage.color,
-                  color: "white",
-                  padding: "8px 16px",
-                  borderRadius: "20px",
-                  fontSize: "14px",
-                  fontWeight: "500",
                   textAlign: "center",
                   minWidth: "100px"
                 }}>
@@ -244,22 +262,45 @@ function JobTracker() {
         </div>
 
         {/* Search and Actions Bar */}
-        <div style={{ padding: "0 40px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="tracker-toolbar glass-panel" style={{ padding: "0 24px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-            <input
-              type="text"
-              placeholder="Search jobs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                padding: "10px 15px",
-                border: `1px solid ${borderColor}`,
-                borderRadius: "8px",
-                background: darkMode ? "#374151" : "#ffffff",
-                color: textColor,
-                width: "300px"
-              }}
-            />
+            <div className="search-input-wrap">
+              <span className="search-icon">⌕</span>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Search jobs..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  borderColor,
+                  background: darkMode ? "#374151" : "#ffffff",
+                  color: textColor,
+                  width: "300px"
+                }}
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="tracker-select"
+              style={{ background: darkMode ? "#374151" : "#ffffff", color: textColor, borderColor }}
+            >
+              {statusOptions.map((status) => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="tracker-select"
+              style={{ background: darkMode ? "#374151" : "#ffffff", color: textColor, borderColor }}
+            >
+              <option value="newest">Newest</option>
+              <option value="company">Company</option>
+              <option value="role">Role</option>
+              <option value="deadline">Deadline</option>
+            </select>
             <span style={{ color: darkMode ? "#94a3b8" : "#6b7280", fontSize: "14px" }}>
               {selectedJobs.length} selected
             </span>
@@ -267,14 +308,7 @@ function JobTracker() {
           <div style={{ display: "flex", gap: "10px" }}>
             <button
               onClick={() => navigate("/add-job")}
-              style={{
-                padding: "8px 16px",
-                background: primaryColor,
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer"
-              }}
+              className="btn gradient-btn"
             >
               + Add Job
             </button>
@@ -282,8 +316,8 @@ function JobTracker() {
         </div>
 
         {/* Jobs Table */}
-        <div style={{ padding: "0 40px 40px" }}>
-          <table style={{ 
+        <div className="tracker-table-shell" style={{ padding: "0 24px 24px" }}>
+          <table className="tracker-table" style={{ 
             width: "100%", 
             borderCollapse: "collapse",
             background: bgColor,
@@ -320,10 +354,22 @@ function JobTracker() {
               </tr>
             </thead>
             <tbody>
+              {filteredJobs.length === 0 && (
+                <tr>
+                  <td colSpan="11">
+                    <div className="empty-state">
+                      <div style={{ fontSize: "42px" }}>📭</div>
+                      <h3>No jobs match your filters</h3>
+                      <p>Try adjusting search text, status filter, or sort options.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
               {filteredJobs.map((job, index) => (
-                <tr key={job.id} style={{ 
+                <tr key={job.id} className="tracker-row" style={{ 
                   borderBottom: `1px solid ${borderColor}`,
-                  background: darkMode ? (index % 2 === 0 ? "#1f2937" : "#374151") : (index % 2 === 0 ? "#ffffff" : "#f9fafb")
+                  background: darkMode ? (index % 2 === 0 ? "#1f2937" : "#374151") : (index % 2 === 0 ? "#ffffff" : "#f9fafb"),
+                  animationDelay: `${index * 0.04}s`
                 }}>
                   <td style={{ padding: "12px", color: darkMode ? "#f3f4f6" : "#1f2937" }}>
                     <div style={{ display: "flex", alignItems: "center" }}>
@@ -340,15 +386,7 @@ function JobTracker() {
                   <td style={{ padding: "12px", color: darkMode ? "#94a3b8" : "#6b7280" }}>-</td>
                   <td style={{ padding: "12px", color: darkMode ? "#94a3b8" : "#6b7280" }}>-</td>
                   <td style={{ padding: "12px" }}>
-                    <span style={{
-                      background: job.status === "Accepted" ? "#10b981" : 
-                                 job.status === "Interview" ? "#f59e0b" : 
-                                 job.status === "Applied" ? "#3b82f6" : "#6b7280",
-                      color: "white",
-                      padding: "4px 8px",
-                      borderRadius: "12px",
-                      fontSize: "12px"
-                    }}>
+                    <span className={getStatusClass(job.status)}>
                       {job.status}
                     </span>
                   </td>
@@ -374,19 +412,22 @@ function JobTracker() {
                     <div style={{ display: "flex", gap: "5px" }}>
                       <button 
                         onClick={() => startEdit(job)}
-                        style={{ padding: "6px 10px", background: "#2563eb", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                        className="btn gradient-btn"
+                        style={{ padding: "6px 10px", minHeight: "32px" }}
                       >
                         Edit
                       </button>
                       <button 
                         onClick={() => openNotes(job)}
-                        style={{ padding: "6px 10px", background: "#7c3aed", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                        className="btn btn-secondary"
+                        style={{ padding: "6px 10px", minHeight: "32px" }}
                       >
                         Notes
                       </button>
                       <button 
                         onClick={() => deleteJob(job.id)}
-                        style={{ padding: "6px 10px", background: "#dc2626", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                        className="btn btn-danger"
+                        style={{ padding: "6px 10px", minHeight: "32px" }}
                       >
                         Delete
                       </button>
@@ -396,6 +437,7 @@ function JobTracker() {
               ))}
             </tbody>
           </table>
+        </div>
         </div>
 
         {/* Edit Modal */}

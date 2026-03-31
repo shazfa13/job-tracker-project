@@ -130,13 +130,16 @@ function Dashboard() {
   return (
     <>
       <Navbar />
-      <div style={{ 
-        padding: "40px", 
-        background: bgColor,
-        color: textColor,
-        minHeight: "100vh",
-        transition: "all 0.3s ease"
-      }}>
+      <div
+        className="app-page"
+        style={{
+          background: bgColor,
+          color: textColor,
+          transition: "all 0.3s ease"
+        }}
+      >
+
+        <div className="app-page-content">
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "40px" }}>
           <div>
@@ -314,6 +317,8 @@ function Dashboard() {
               <p style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>{rejected}</p>
             </div>
           </div>
+        </div>
+
         </div>
 
       </div>

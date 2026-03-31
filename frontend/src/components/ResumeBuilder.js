@@ -445,21 +445,19 @@ function ResumeBuilder() {
   return (
     <>
       <Navbar />
-      <div style={{
-        background: bgColor,
-        color: textColor,
-        minHeight: "100vh",
-        padding: "40px 20px",
-        transition: "all 0.3s ease"
-      }}>
+      <div
+        className="app-page ui-page resume-page"
+        style={{
+          background: bgColor,
+          color: textColor,
+          transition: "all 0.3s ease"
+        }}
+      >
         
-        <div style={{
-          maxWidth: "1200px",
-          margin: "0 auto"
-        }}>
+        <div className="app-page-content resume-shell glass-panel" style={{ background: cardBg, borderColor }}>
           
           {/* Header */}
-          <div style={{
+          <div className="resume-topbar" style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -501,6 +499,7 @@ function ResumeBuilder() {
                       loadResume(resumeId);
                     }
                   }}
+                  className="resume-select"
                   style={{
                     padding: "8px 12px",
                     border: `1px solid ${borderColor}`,
@@ -528,6 +527,7 @@ function ResumeBuilder() {
                 value={resumeName}
                 onChange={(e) => setResumeName(e.target.value)}
                 placeholder="Resume name"
+                className="ui-input"
                 style={{
                   padding: "8px 12px",
                   border: `1px solid ${borderColor}`,
@@ -543,23 +543,7 @@ function ResumeBuilder() {
               <div style={{ display: "flex", gap: "10px" }}>
                 <button
                   onClick={createNewResume}
-                  style={{
-                    padding: "10px 20px",
-                    background: primaryColor,
-                    color: "white",
-                    border: "none",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                    transition: "all 0.2s ease"
-                  }}
-                  onMouseOver={(e) => {
-                    e.target.style.background = "#2563eb";
-                  }}
-                  onMouseOut={(e) => {
-                    e.target.style.background = primaryColor;
-                  }}
+                  className="btn gradient-btn"
                 >
                   ➕ New Resume
                 </button>
@@ -567,23 +551,7 @@ function ResumeBuilder() {
                 {currentResumeId && currentResumeId !== "new" && (
                   <button
                     onClick={() => deleteResume(currentResumeId)}
-                    style={{
-                      padding: "10px 20px",
-                      background: "#ef4444",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "8px",
-                      cursor: "pointer",
-                      fontSize: "14px",
-                      fontWeight: "500",
-                      transition: "all 0.2s ease"
-                    }}
-                    onMouseOver={(e) => {
-                      e.target.style.background = "#dc2626";
-                    }}
-                    onMouseOut={(e) => {
-                      e.target.style.background = "#ef4444";
-                    }}
+                    className="btn btn-danger"
                   >
                     🗑️ Delete
                   </button>
@@ -592,29 +560,13 @@ function ResumeBuilder() {
 
               <button
                 onClick={generateResume}
-                style={{
-                  padding: "10px 20px",
-                  background: "#10b981",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "500"
-                }}
+                className="btn gradient-btn"
               >
                 📥 Download Resume
               </button>
               <button
                 onClick={toggleDarkMode}
-                style={{
-                  padding: "10px 15px",
-                  background: darkMode ? "#fbbf24" : "#1f2937",
-                  color: darkMode ? "black" : "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer"
-                }}
+                className="btn ghost-btn"
               >
                 {darkMode ? "☀️" : "🌙"}
               </button>
@@ -622,27 +574,12 @@ function ResumeBuilder() {
           </div>
 
           {/* Section Navigation */}
-          <div style={{
-            display: "flex",
-            gap: "15px",
-            marginBottom: "30px",
-            flexWrap: "wrap"
-          }}>
+          <div className="resume-sections">
             {sections.map(section => (
               <button
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
-                style={{
-                  padding: "12px 20px",
-                  background: activeSection === section.id ? primaryColor : cardBg,
-                  color: activeSection === section.id ? "white" : textColor,
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  transition: "all 0.2s ease"
-                }}
+                className={`resume-tab ${activeSection === section.id ? "active" : ""}`}
               >
                 {section.icon} {section.name}
               </button>
@@ -650,13 +587,8 @@ function ResumeBuilder() {
           </div>
 
           {/* Content Area */}
-          <div style={{
-            background: cardBg,
-            padding: "30px",
-            borderRadius: "16px",
-            border: `1px solid ${borderColor}`,
-            boxShadow: darkMode ? "0 4px 6px rgba(0,0,0,0.3)" : "0 4px 6px rgba(0,0,0,0.1)"
-          }}>
+          <div className="resume-workspace">
+          <div className="resume-form-pane" style={{ background: cardBg, borderColor }}>
 
             {/* Personal Information */}
             {activeSection === "personal" && (
@@ -888,7 +820,7 @@ function ResumeBuilder() {
                   </div>
                 </div>
                 {resumeData.experience.map((exp) => (
-                  <div key={exp.id} style={{
+                  <div key={exp.id} className="section-card" style={{
                     background: darkMode ? "#1f2937" : "#f8fafc",
                     padding: "20px",
                     borderRadius: "8px",
@@ -1032,7 +964,7 @@ function ResumeBuilder() {
                   </div>
                 </div>
                 {resumeData.education.map((edu) => (
-                  <div key={edu.id} style={{
+                  <div key={edu.id} className="section-card" style={{
                     background: darkMode ? "#1f2937" : "#f8fafc",
                     padding: "20px",
                     borderRadius: "8px",
@@ -1288,7 +1220,7 @@ function ResumeBuilder() {
                   </div>
                 </div>
                 {resumeData.projects.map((proj) => (
-                  <div key={proj.id} style={{
+                  <div key={proj.id} className="section-card" style={{
                     background: darkMode ? "#1f2937" : "#f8fafc",
                     padding: "20px",
                     borderRadius: "8px",
@@ -1377,6 +1309,61 @@ function ResumeBuilder() {
               </div>
             )}
 
+          </div>
+          <aside className="resume-preview-pane" style={{ background: cardBg, borderColor, color: textColor }}>
+            <h3 className="resume-preview-name" style={{ color: textColor }}>
+              {resumeData.personalInfo.fullName || "Your Name"}
+            </h3>
+            <p className="resume-preview-meta">{resumeData.personalInfo.email || "email@example.com"}</p>
+            <p className="resume-preview-meta">{resumeData.personalInfo.phone || "+1 000 000 0000"}</p>
+            <p className="resume-preview-meta">{resumeData.personalInfo.location || "City, Country"}</p>
+
+            <div className="resume-preview-section">
+              <h4>Summary</h4>
+              <p style={{ margin: 0, lineHeight: 1.6, color: darkMode ? "#cbd5e1" : "#334155" }}>
+                {resumeData.summary || "A concise summary will appear here as you type."}
+              </p>
+            </div>
+
+            <div className="resume-preview-section">
+              <h4>Skills</h4>
+              {resumeData.skills.length > 0 ? (
+                <div>
+                  {resumeData.skills.map((skill, index) => (
+                    <span key={`${skill}-${index}`} className="resume-preview-chip">{skill}</span>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ margin: 0, color: darkMode ? "#94a3b8" : "#64748b" }}>Add skills to build your preview.</p>
+              )}
+            </div>
+
+            <div className="resume-preview-section">
+              <h4>Experience</h4>
+              {resumeData.experience.length > 0 ? (
+                resumeData.experience.slice(0, 3).map((exp) => (
+                  <p key={exp.id} style={{ margin: "0 0 8px", color: darkMode ? "#cbd5e1" : "#334155" }}>
+                    <strong>{exp.position || "Role"}</strong> at {exp.company || "Company"}
+                  </p>
+                ))
+              ) : (
+                <p style={{ margin: 0, color: darkMode ? "#94a3b8" : "#64748b" }}>No experience added yet.</p>
+              )}
+            </div>
+
+            <div className="resume-preview-section">
+              <h4>Projects</h4>
+              {resumeData.projects.length > 0 ? (
+                resumeData.projects.slice(0, 3).map((proj) => (
+                  <p key={proj.id} style={{ margin: "0 0 8px", color: darkMode ? "#cbd5e1" : "#334155" }}>
+                    <strong>{proj.name || "Project"}</strong>
+                  </p>
+                ))
+              ) : (
+                <p style={{ margin: 0, color: darkMode ? "#94a3b8" : "#64748b" }}>Projects will show up here.</p>
+              )}
+            </div>
+          </aside>
           </div>
         </div>
       </div>

@@ -1,0 +1,17 @@
+{
+  "name": "job-tracker",
+  "version": "1.0.0",
+  "description": "Full-stack job tracker application",
+  "private": true,
+  "scripts": {
+    "start": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "cd backend && npm start",
+    "frontend": "cd frontend && npm start",
+    "backend:dev": "cd backend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

@@ -10,7 +10,7 @@ function JobList({ jobs, refreshJobs }) {
 
   return (
 
-<div>
+<div className="jobs-list">
 
 {jobs.map((job) => (
 
@@ -20,9 +20,11 @@ function JobList({ jobs, refreshJobs }) {
 
 <p>{job.role}</p>
 
-<p className="status">Status: {job.status}</p>
+<p>
+Status: <span className={`status-pill ${job.status === "Rejected" ? "status-danger" : job.status === "Accepted" ? "status-success" : "status-pending"}`}>{job.status}</span>
+</p>
 
-<button onClick={() => deleteJob(job.id)}>
+<button className="btn btn-danger" onClick={() => deleteJob(job.id)}>
 Delete
 </button>
 
