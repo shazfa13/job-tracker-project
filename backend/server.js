@@ -11,9 +11,12 @@ app.use(express.json());
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017';
 const PORT = parseInt(process.env.PORT, 10) || 5000;
-
-const client = new MongoClient(MONGO_URI);
-
+const DB_NAME = process.env.DB_NAME || "jobtracker";
+//const client = new MongoClient(MONGO_URI);
+const client = new MongoClient(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 let usersCol;
 let jobsCol;
 let resumesCol;
@@ -452,8 +455,11 @@ app.delete('/admin/jobs/:jobId', async (req, res) => {
 
 async function start() {
   try {
+    //await client.connect();
     await client.connect();
-    const db = client.db('jobtracker');
+    console.log("MongoDB Connected ✅");
+   // const db = client.db('jobtracker');
+   const db = client.db(DB_NAME);
     usersCol = db.collection('users');
     jobsCol = db.collection('jobs');
     resumesCol = db.collection('resumes');
