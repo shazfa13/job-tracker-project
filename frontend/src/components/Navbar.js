@@ -22,6 +22,7 @@ function Navbar() {
     { label: "Dashboard", icon: "📈", path: "/dashboard" },
     { label: "Add Job", icon: "➕", path: "/add-job" },
     { label: "Job Tracker", icon: "🗂", path: "/job-tracker" },
+    { label: "Job Portal", icon: "💼", path: "/job-portal" },
     { label: "Search", icon: "🔎", path: "/search-company" },
     { label: "Resume", icon: "📄", path: "/resume-builder" }
   ];

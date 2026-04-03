@@ -7,7 +7,8 @@ dotenv.config();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017';
 const PORT = parseInt(process.env.PORT, 10) || 5000;
@@ -20,6 +21,9 @@ const client = new MongoClient(MONGO_URI, {
 let usersCol;
 let jobsCol;
 let resumesCol;
+let jobPostingsCol;
+let jobApplicationsCol;
+let jobSeekerResumesCol;
 
 function toObjectId(id) {
   if (!id) return null;
@@ -453,6 +457,429 @@ app.delete('/admin/jobs/:jobId', async (req, res) => {
   return res.json({ message: 'Job deleted successfully' });
 });
 
+// ============= JOB PORTAL ROUTES =============
+
+// Create Job Posting
+app.post('/create-job-posting', async (req, res) => {
+  const { recruiter_id, position, company, description, requirements } = req.body;
+  
+  if (!recruiter_id || !position || !description || !requirements) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  const recruiterObjId = toObjectId(recruiter_id);
+  if (!recruiterObjId) {
+    return res.status(400).json({ error: 'Invalid recruiter ID' });
+  }
+
+  try {
+    const jobPosting = {
+      recruiter_id: recruiterObjId,
+      position,
+      company: company || '',
+      description,
+      requirements: Array.isArray(requirements) ? requirements : [requirements],
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+
+    const result = await jobPostingsCol.insertOne(jobPosting);
+    return res.json({ 
+      message: 'Job posting created successfully',
+      job_id: result.insertedId.toString()
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Get All Job Postings
+app.get('/job-postings', async (req, res) => {
+  try {
+    const jobs = await jobPostingsCol.find({}).sort({ created_at: -1 }).toArray();
+    const serialized = jobs.map(job => ({
+      _id: job._id.toString(),
+      recruiter_id: job.recruiter_id.toString(),
+      position: job.position,
+      company: job.company,
+      description: job.description,
+      requirements: job.requirements,
+      created_at: job.created_at,
+      updated_at: job.updated_at
+    }));
+    return res.json(serialized);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Get Recruiter's Job Postings
+app.get('/recruiter-jobs/:recruiterId', async (req, res) => {
+  const { recruiterId } = req.params;
+  
+  const recruiterObjId = toObjectId(recruiterId);
+  if (!recruiterObjId) {
+    return res.status(400).json({ error: 'Invalid recruiter ID' });
+  }
+
+  try {
+    const jobs = await jobPostingsCol.find({ recruiter_id: recruiterObjId }).sort({ created_at: -1 }).toArray();
+    const serialized = jobs.map(job => ({
+      _id: job._id.toString(),
+      recruiter_id: job.recruiter_id.toString(),
+      position: job.position,
+      company: job.company,
+      description: job.description,
+      requirements: job.requirements,
+      created_at: job.created_at,
+      updated_at: job.updated_at
+    }));
+    return res.json(serialized);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete Job Posting
+app.delete('/job-postings/:jobId', async (req, res) => {
+  const { jobId } = req.params;
+  
+  const jobObjId = toObjectId(jobId);
+  if (!jobObjId) {
+    return res.status(400).json({ error: 'Invalid job ID' });
+  }
+
+  try {
+    await jobPostingsCol.deleteOne({ _id: jobObjId });
+    // Also delete all applications for this job
+    await jobApplicationsCol.deleteMany({ job_id: jobObjId });
+    return res.json({ message: 'Job posting deleted successfully' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Apply for Job
+app.post('/apply-job', async (req, res) => {
+  const { user_id, job_id, resume_attachment, cover_page_attachment, referral = '' } = req.body;
+  
+  if (!user_id || !job_id || !resume_attachment || !cover_page_attachment) {
+    return res.status(400).json({ error: 'Resume and cover page are required' });
+  }
+
+  if (!resume_attachment?.name || !resume_attachment?.data || !cover_page_attachment?.name || !cover_page_attachment?.data) {
+    return res.status(400).json({ error: 'Invalid attachment payload' });
+  }
+
+  const userObjId = toObjectId(user_id);
+  const jobObjId = toObjectId(job_id);
+  
+  if (!userObjId || !jobObjId) {
+    return res.status(400).json({ error: 'Invalid user or job ID' });
+  }
+
+  try {
+    // Check if already applied
+    const existing = await jobApplicationsCol.findOne({ user_id: userObjId, job_id: jobObjId });
+    if (existing) {
+      return res.status(409).json({ error: 'You have already applied for this job' });
+    }
+
+    const jobPosting = await jobPostingsCol.findOne({ _id: jobObjId });
+    if (!jobPosting) {
+      return res.status(404).json({ error: 'Job posting not found' });
+    }
+
+    const user = await usersCol.findOne({ _id: userObjId });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const application = {
+      user_id: userObjId,
+      job_id: jobObjId,
+      recruiter_id: jobPosting.recruiter_id,
+      job_title: jobPosting.position,
+      company_name: jobPosting.company,
+      user_name: user.username,
+      resume_attachment,
+      cover_page_attachment,
+      referral,
+      status: 'pending',
+      applied_at: new Date(),
+      updated_at: new Date()
+    };
+
+    const result = await jobApplicationsCol.insertOne(application);
+    return res.json({ 
+      message: 'Applied successfully',
+      application_id: result.insertedId.toString()
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Get Job Applications for a User
+app.get('/job-applications/:userId', async (req, res) => {
+  const { userId } = req.params;
+  
+  const userObjId = toObjectId(userId);
+  if (!userObjId) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
+
+  try {
+    const applications = await jobApplicationsCol.find({ user_id: userObjId }).sort({ applied_at: -1 }).toArray();
+    const serialized = applications.map(app => ({
+      _id: app._id.toString(),
+      user_id: app.user_id.toString(),
+      job_id: app.job_id.toString(),
+      recruiter_id: app.recruiter_id.toString(),
+      job_title: app.job_title,
+      company_name: app.company_name,
+      status: app.status,
+      applied_at: app.applied_at,
+      updated_at: app.updated_at
+    }));
+    return res.json(serialized);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Withdraw Job Application
+app.delete('/job-applications/:applicationId', async (req, res) => {
+  const { applicationId } = req.params;
+  const { user_id } = req.query;
+
+  if (!user_id) {
+    return res.status(400).json({ error: 'User ID is required' });
+  }
+
+  const applicationObjId = toObjectId(applicationId);
+  const userObjId = toObjectId(user_id);
+
+  if (!applicationObjId || !userObjId) {
+    return res.status(400).json({ error: 'Invalid application or user ID' });
+  }
+
+  try {
+    const application = await jobApplicationsCol.findOne({ _id: applicationObjId });
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    if (application.user_id.toString() !== userObjId.toString()) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    await jobApplicationsCol.deleteOne({ _id: applicationObjId });
+    return res.json({ message: 'Application withdrawn successfully' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Recruiter updates an application decision
+app.patch('/job-applications/:applicationId/status', async (req, res) => {
+  const { applicationId } = req.params;
+  const { recruiter_id, status } = req.body;
+
+  if (!recruiter_id || !status) {
+    return res.status(400).json({ error: 'Recruiter ID and status are required' });
+  }
+
+  const normalizedStatus = String(status).toLowerCase();
+  if (!['accepted', 'rejected'].includes(normalizedStatus)) {
+    return res.status(400).json({ error: 'Status must be accepted or rejected' });
+  }
+
+  const applicationObjId = toObjectId(applicationId);
+  const recruiterObjId = toObjectId(recruiter_id);
+
+  if (!applicationObjId || !recruiterObjId) {
+    return res.status(400).json({ error: 'Invalid application or recruiter ID' });
+  }
+
+  try {
+    const application = await jobApplicationsCol.findOne({ _id: applicationObjId });
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    if (application.recruiter_id.toString() !== recruiterObjId.toString()) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    await jobApplicationsCol.updateOne(
+      { _id: applicationObjId },
+      { $set: { status: normalizedStatus, updated_at: new Date() } }
+    );
+
+    return res.json({ message: 'Application status updated successfully' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Recruiter analytics dashboard data
+app.get('/recruiter-analytics/:recruiterId', async (req, res) => {
+  const { recruiterId } = req.params;
+
+  const recruiterObjId = toObjectId(recruiterId);
+  if (!recruiterObjId) {
+    return res.status(400).json({ error: 'Invalid recruiter ID' });
+  }
+
+  try {
+    const jobs = await jobPostingsCol
+      .find({ recruiter_id: recruiterObjId })
+      .sort({ created_at: -1 })
+      .toArray();
+
+    const applications = await jobApplicationsCol
+      .find({ recruiter_id: recruiterObjId })
+      .toArray();
+
+    const jobStatsMap = jobs.reduce((acc, job) => {
+      acc[job._id.toString()] = {
+        job_id: job._id.toString(),
+        position: job.position,
+        company: job.company,
+        totalApplicants: 0,
+        accepted: 0,
+        rejected: 0,
+        pending: 0
+      };
+      return acc;
+    }, {});
+
+    applications.forEach((application) => {
+      const key = application.job_id.toString();
+      if (!jobStatsMap[key]) return;
+
+      jobStatsMap[key].totalApplicants += 1;
+      const s = String(application.status || 'pending').toLowerCase();
+      if (s === 'accepted') {
+        jobStatsMap[key].accepted += 1;
+      } else if (s === 'rejected') {
+        jobStatsMap[key].rejected += 1;
+      } else {
+        jobStatsMap[key].pending += 1;
+      }
+    });
+
+    const jobsAnalytics = Object.values(jobStatsMap);
+    const summary = jobsAnalytics.reduce(
+      (acc, item) => {
+        acc.totalApplicants += item.totalApplicants;
+        acc.totalAccepted += item.accepted;
+        acc.totalRejected += item.rejected;
+        acc.totalPending += item.pending;
+        return acc;
+      },
+      {
+        totalJobs: jobs.length,
+        totalApplicants: 0,
+        totalAccepted: 0,
+        totalRejected: 0,
+        totalPending: 0
+      }
+    );
+
+    return res.json({ summary, jobs: jobsAnalytics });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Get Applicants for a Job
+app.get('/job-applicants/:jobId', async (req, res) => {
+  const { jobId } = req.params;
+  
+  const jobObjId = toObjectId(jobId);
+  if (!jobObjId) {
+    return res.status(400).json({ error: 'Invalid job ID' });
+  }
+
+  try {
+    const applicants = await jobApplicationsCol.find({ job_id: jobObjId }).sort({ applied_at: -1 }).toArray();
+    const serialized = applicants.map(app => ({
+      _id: app._id.toString(),
+      user_id: app.user_id.toString(),
+      job_id: app.job_id.toString(),
+      user_name: app.user_name,
+      resume_attachment: app.resume_attachment || null,
+      cover_page_attachment: app.cover_page_attachment || null,
+      referral: app.referral || '',
+      status: app.status,
+      applied_at: app.applied_at,
+      updated_at: app.updated_at
+    }));
+    return res.json(serialized);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Upload Resume (Job Seeker)
+app.post('/upload-resume', async (req, res) => {
+  const { user_id, resume_name, resume_file } = req.body;
+  
+  if (!user_id || !resume_name || !resume_file) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  const userObjId = toObjectId(user_id);
+  if (!userObjId) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
+
+  try {
+    const resume = {
+      user_id: userObjId,
+      name: resume_name,
+      file_content: resume_file,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+
+    const result = await jobSeekerResumesCol.insertOne(resume);
+    return res.json({ 
+      message: 'Resume uploaded successfully',
+      resume_id: result.insertedId.toString()
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Get User Resumes (Job Seeker)
+app.get('/resumes/:userId', async (req, res) => {
+  const { userId } = req.params;
+  
+  const userObjId = toObjectId(userId);
+  if (!userObjId) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
+
+  try {
+    const resumes = await jobSeekerResumesCol.find({ user_id: userObjId }).sort({ created_at: -1 }).toArray();
+    const serialized = resumes.map(resume => ({
+      id: resume._id.toString(),
+      user_id: resume.user_id.toString(),
+      name: resume.name,
+      file_content: resume.file_content || '',
+      created_at: resume.created_at,
+      updated_at: resume.updated_at
+    }));
+    return res.json(serialized);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 async function start() {
   try {
     //await client.connect();
@@ -463,10 +890,17 @@ async function start() {
     usersCol = db.collection('users');
     jobsCol = db.collection('jobs');
     resumesCol = db.collection('resumes');
+    jobPostingsCol = db.collection('job_postings');
+    jobApplicationsCol = db.collection('job_applications');
+    jobSeekerResumesCol = db.collection('job_seeker_resumes');
 
     await usersCol.createIndex({ username: 1 }, { unique: true });
     await jobsCol.createIndex({ user_id: 1 });
     await resumesCol.createIndex({ user_id: 1 });
+    await jobPostingsCol.createIndex({ recruiter_id: 1 });
+    await jobApplicationsCol.createIndex({ user_id: 1 });
+    await jobApplicationsCol.createIndex({ job_id: 1 });
+    await jobSeekerResumesCol.createIndex({ user_id: 1 });
 
     app.listen(PORT, () => {
       console.log(`Server is running on http://localhost:${PORT}`);

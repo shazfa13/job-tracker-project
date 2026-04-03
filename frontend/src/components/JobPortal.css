@@ -1,0 +1,115 @@
+/* Job Portal Styles */
+
+.job-portal-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 32px;
+}
+
+.job-portal-header {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 12px;
+}
+
+.job-portal-choice-container {
+  max-width: 600px;
+  width: 100%;
+}
+
+.job-portal-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.job-portal-option {
+  transition: all 0.3s ease;
+}
+
+.job-portal-option:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(47, 108, 229, 0.2);
+}
+
+/* Job Listing Page */
+.job-listing-page {
+  min-height: 100vh;
+}
+
+/* Resume Upload */
+.resume-upload {
+  min-height: 100vh;
+}
+
+/* Applications Dashboard */
+.applications-dashboard {
+  min-height: 100vh;
+}
+
+/* Create Job Posting */
+.create-job-posting {
+  min-height: 100vh;
+}
+
+/* Recruiter Dashboard */
+.recruiter-dashboard {
+  min-height: 100vh;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .job-listing-page {
+    grid-template-columns: 1fr !important;
+  }
+
+  .resume-upload {
+    grid-template-columns: 1fr !important;
+  }
+
+  .recruiter-dashboard {
+    grid-template-columns: 1fr !important;
+  }
+
+  .job-portal-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .job-portal-header {
+    position: static;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .job-portal-choice-container {
+    padding: 24px !important;
+  }
+}
+
+/* Animation Classes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.job-portal-entry,
+.job-listing-page,
+.resume-upload,
+.applications-dashboard,
+.create-job-posting,
+.recruiter-dashboard {
+  animation: fadeIn 0.3s ease;
+}

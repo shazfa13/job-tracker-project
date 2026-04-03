@@ -1380,6 +1380,11 @@
   isolation: isolate;
 }
 
+.welcome-page .public-content {
+  width: 100%;
+  max-width: none;
+}
+
 .welcome-page::before {
   content: "";
   position: fixed;
@@ -1393,14 +1398,16 @@
 }
 
 .welcome-content {
-  margin-top: 20px;
-  margin-bottom: 24px;
-  padding: 34px;
+  width: 100%;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 28px clamp(18px, 3.4vw, 42px) 36px;
   border-radius: 22px;
   border: 1px solid #d5def7;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(242, 247, 255, 0.96));
   box-shadow: 0 22px 42px rgba(37, 99, 235, 0.12);
   animation: pageIn 0.58s ease both;
+  min-height: calc(100vh - 72px);
 }
 
 .welcome-hero {
@@ -1539,6 +1546,159 @@
 
 .welcome-page.welcome-dark .welcome-cta-title {
   color: #e2e8f0 !important;
+}
+
+.welcome-page.welcome-dark .landing-preview-card {
+  background: linear-gradient(180deg, rgba(21, 33, 56, 0.98), rgba(15, 24, 42, 0.98));
+  border-color: #33476d;
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.4);
+}
+
+.welcome-page.welcome-dark .preview-label {
+  color: #9fb0cc;
+}
+
+.welcome-page.welcome-dark .preview-row {
+  border-bottom-color: #33476d;
+}
+
+.welcome-page.welcome-dark .preview-row span:first-child {
+  color: #e2e8f0;
+}
+
+.welcome-page.welcome-dark .preview-row .status-pill {
+  box-shadow: none;
+}
+
+.welcome-content .landing-hero {
+  animation: welcomeHeroEnter 0.72s ease-out both;
+}
+
+.welcome-content .landing-preview-card {
+  animation: welcomePreviewFloat 4.8s ease-in-out 0.8s infinite;
+}
+
+.welcome-content .landing-section {
+  animation: welcomeSectionEnter 0.65s ease both;
+}
+
+.welcome-content .landing-section:nth-of-type(2) {
+  animation-delay: 0.1s;
+}
+
+.welcome-content .landing-section:nth-of-type(3) {
+  animation-delay: 0.2s;
+}
+
+.welcome-content .landing-feature-card {
+  animation: welcomeCardRise 0.58s ease both;
+}
+
+.welcome-content .landing-feature-card:nth-child(1) {
+  animation-delay: 0.12s;
+}
+
+.welcome-content .landing-feature-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.welcome-content .landing-feature-card:nth-child(3) {
+  animation-delay: 0.28s;
+}
+
+.welcome-content .landing-feature-card:nth-child(4) {
+  animation-delay: 0.36s;
+}
+
+.welcome-content .landing-step {
+  animation: welcomeCardRise 0.58s ease both;
+}
+
+.welcome-content .landing-step:nth-child(1) {
+  animation-delay: 0.18s;
+}
+
+.welcome-content .landing-step:nth-child(2) {
+  animation-delay: 0.26s;
+}
+
+.welcome-content .landing-step:nth-child(3) {
+  animation-delay: 0.34s;
+}
+
+.welcome-content .landing-cta {
+  animation: welcomeSectionEnter 0.66s ease 0.26s both;
+}
+
+.welcome-content .landing-cta h3 {
+  animation: welcomeTitlePulse 3.6s ease-in-out 1s infinite;
+}
+
+@keyframes welcomeHeroEnter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes welcomeSectionEnter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes welcomeCardRise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes welcomePreviewFloat {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes welcomeTitlePulse {
+  0% {
+    letter-spacing: -0.02em;
+  }
+  50% {
+    letter-spacing: -0.008em;
+  }
+  100% {
+    letter-spacing: -0.02em;
+  }
+}
+
+@media (max-width: 768px) {
+  .welcome-content {
+    padding: 18px 14px 24px;
+  }
+
+  .welcome-content .landing-preview-card {
+    animation-duration: 6s;
+  }
 }
 
 .ui-input,
