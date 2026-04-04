@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "./Navbar";
+import DeadlineCalendar from "./DeadlineCalendar";
 import { useNavigate } from "react-router-dom";
 
 function JobTracker() {
@@ -260,6 +261,8 @@ function JobTracker() {
             ))}
           </div>
         </div>
+
+        <DeadlineCalendar jobs={jobs} darkMode={darkMode} />
 
         {/* Search and Actions Bar */}
         <div className="tracker-toolbar glass-panel" style={{ padding: "0 24px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>

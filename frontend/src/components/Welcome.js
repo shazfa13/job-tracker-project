@@ -42,10 +42,10 @@ function Welcome() {
       <div className="public-content home-landing-content welcome-content">
         <section className="landing-hero surface-card">
           <div>
-            <span className="landing-kicker">Job Application Tracking System</span>
-            <h2 className="landing-hero-title">Track Your Job Applications Effortlessly</h2>
+            <span className="landing-kicker">Job Search and Hiring Workspace</span>
+            <h2 className="landing-hero-title">Manage applications, interviews, and recruiter workflows in one place</h2>
             <p className="landing-hero-subtitle">
-              JobTracker includes auth, analytics dashboards, job tracking tools, search, resume tools, job portal flows, and recruiter management in one workspace.
+              JobTracker brings together application tracking, resume tools, job listings, recruiter dashboards, and admin controls so every stage of the process stays organized.
             </p>
             <div className="landing-hero-actions">
               <button className="btn btn-primary" onClick={() => navigate("/login")}>Login</button>
@@ -55,18 +55,18 @@ function Welcome() {
 
           <div className="landing-preview" aria-hidden="true">
             <div className="landing-preview-card">
-              <p className="preview-label">Recent Activity</p>
+              <p className="preview-label">Current Pipeline</p>
               <div className="preview-row">
-                <span>Frontend Developer</span>
+                <span>Frontend Engineer at Atlas Labs</span>
                 <span className="status-pill status-success">Interview</span>
               </div>
               <div className="preview-row">
-                <span>Software Engineer Intern</span>
+                <span>Backend Developer at Northwind</span>
                 <span className="status-pill status-pending">Applied</span>
               </div>
               <div className="preview-row">
-                <span>UI/UX Designer</span>
-                <span className="status-pill status-danger">Rejected</span>
+                <span>Recruiter Review for Product Designer</span>
+                <span className="status-pill status-danger">Pending</span>
               </div>
             </div>
           </div>
@@ -77,23 +77,23 @@ function Welcome() {
           <div className="landing-feature-grid">
             <article className="landing-feature-card surface-card">
               <span className="landing-icon">01</span>
-              <h4>Core Tracker Modules</h4>
-              <p>Dashboard, Add Job, Job Tracker, and Search Company help manage and monitor every application stage.</p>
+              <h4>Application Tracker</h4>
+              <p>Log new roles, update application status, and keep company search details in one organized view.</p>
             </article>
             <article className="landing-feature-card surface-card">
               <span className="landing-icon">02</span>
-              <h4>Resume & AI Tools</h4>
-              <p>Resume Builder and AI Skills suggestions help optimize profiles and tailor applications faster.</p>
+              <h4>Resume & Profile Tools</h4>
+              <p>Build resumes, upload documents, and use skill suggestions to tailor your profile for each role.</p>
             </article>
             <article className="landing-feature-card surface-card">
               <span className="landing-icon">03</span>
               <h4>Job Seeker Portal</h4>
-              <p>Job seeker signup/login, job listings, apply with resume-cover-referral, applications dashboard, and withdraw support.</p>
+              <p>Browse listings, sign up as a job seeker, apply with a resume, and monitor your application dashboard.</p>
             </article>
             <article className="landing-feature-card surface-card">
               <span className="landing-icon">04</span>
               <h4>Recruiter & Admin Spaces</h4>
-              <p>Recruiters can post jobs, review applicants, accept/reject, and view analytics. Admin dashboard manages platform data.</p>
+              <p>Recruiters can create job postings, review candidates, and view analytics while admins manage the platform.</p>
             </article>
           </div>
         </section>
@@ -103,25 +103,25 @@ function Welcome() {
           <div className="landing-steps">
             <article className="landing-step surface-card">
               <span className="landing-step-icon">+</span>
-              <h4>Start with Authentication</h4>
-              <p>Use Welcome, Login, and Signup to enter either general tracking flows or role-based portal flows.</p>
+              <h4>Create Your Account</h4>
+              <p>Sign in as a job seeker, recruiter, or admin to access the tools that match your workflow.</p>
             </article>
             <article className="landing-step surface-card">
               <span className="landing-step-icon">&gt;</span>
-              <h4>Choose Your Workflow</h4>
-              <p>Pick user tools (tracker, search, resume) or job portal role (job seeker or recruiter).</p>
+              <h4>Choose Your Workspace</h4>
+              <p>Move between tracking, resume building, job listings, and recruiter dashboards from a single app.</p>
             </article>
             <article className="landing-step surface-card">
               <span className="landing-step-icon">#</span>
-              <h4>Track Outcomes</h4>
-              <p>Monitor applications, interview progress, recruiter decisions, and analytics from dedicated dashboards.</p>
+              <h4>Monitor Progress</h4>
+              <p>Track applications, interview updates, hiring decisions, and analytics as everything moves forward.</p>
             </article>
           </div>
         </section>
 
         <section className="landing-cta surface-card">
-          <h3>Start managing your job applications today</h3>
-          <p>From welcome to admin, every component is connected to give a complete job-seeking and recruiting experience.</p>
+          <h3>Keep your job search and hiring process in sync</h3>
+          <p>Use one workspace to manage applications, prepare resumes, post jobs, and follow progress across every role.</p>
         </section>
 
         <footer className="landing-footer welcome-footer">
