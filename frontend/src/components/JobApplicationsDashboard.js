@@ -26,7 +26,7 @@ function JobApplicationsDashboard() {
   const fetchApplications = async () => {
     try {
       const res = await axios.get(
-        `http://127.0.0.1:5000/job-applications/${userId}`
+        `/job-applications/${userId}`
       );
       setApplications(res.data || []);
     } catch (error) {
@@ -47,7 +47,7 @@ function JobApplicationsDashboard() {
 
     setWithdrawingId(applicationId);
     try {
-      await axios.delete(`http://127.0.0.1:5000/job-applications/${applicationId}`, {
+      await axios.delete(`/job-applications/${applicationId}`, {
         params: { user_id: userId }
       });
       setApplications((prev) => prev.filter((app) => app._id !== applicationId));

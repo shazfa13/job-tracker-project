@@ -24,7 +24,7 @@ function RecruiterAnalyticsDashboard() {
 
   const fetchAnalytics = async () => {
     try {
-      const res = await axios.get(`http://127.0.0.1:5000/recruiter-analytics/${userId}`);
+      const res = await axios.get(`/recruiter-analytics/${userId}`);
       setAnalytics(res.data || { summary: {}, jobs: [] });
     } catch (error) {
       console.error("Error fetching analytics:", error);

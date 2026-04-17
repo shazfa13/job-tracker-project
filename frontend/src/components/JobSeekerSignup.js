@@ -44,7 +44,7 @@ function JobSeekerSignup() {
         ? { username, password }
         : { username, password, role: "job_seeker" };
 
-      const res = await axios.post(`http://127.0.0.1:5000${endpoint}`, payload);
+      const res = await axios.post(`${endpoint}`, payload);
 
       if (isLoginMode) {
         if (res.data.message === "Login successful") {

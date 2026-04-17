@@ -19,6 +19,7 @@ The project uses a React frontend and an Express + MongoDB backend.
 - [Getting Started](#getting-started)
 - [Environment Variables](#environment-variables)
 - [Available Scripts](#available-scripts)
+- [Deployment](#deployment)
 - [Backend API Reference](#backend-api-reference)
 - [Database Collections](#database-collections)
 - [Troubleshooting](#troubleshooting)
@@ -193,9 +194,9 @@ Default URLs:
 
 ### Frontend (`frontend/.env`)
 
-- `REACT_APP_API_URL`: optional API base URL used by `frontend/src/services/api.js`.
+- `REACT_APP_API_URL`: optional API base URL if you use a separate frontend domain.
 
-Note: several components currently call `http://127.0.0.1:5000` directly, so changing only this env variable may not update every request path.
+Current behavior: frontend requests use relative API paths (for example `/jobs`), which works out of the box when frontend and backend are served from the same origin.
 
 ## Available Scripts
 
@@ -218,6 +219,58 @@ Note: several components currently call `http://127.0.0.1:5000` directly, so cha
 - `npm start`: React development server.
 - `npm run build`: production build.
 - `npm test`: test runner.
+
+## Deployment
+
+This project is deployment-ready in two ways.
+
+### Option A: Single service (recommended)
+
+Use one Node service to host both API and React build.
+
+This repo includes a Render blueprint file at `render.yaml` with preconfigured build/start commands and environment variable keys.
+
+How it works:
+
+- Build the frontend (`frontend/build`).
+- Start the backend (`backend/server.js`).
+- In production mode, backend serves the React build and API from the same domain.
+
+Required environment variables:
+
+- `MONGO_URI`
+- `DB_NAME`
+- `PORT`
+- `NODE_ENV=production`
+
+Example deploy commands:
+
+Build command:
+
+```bash
+npm run install-all && npm run build
+```
+
+Start command:
+
+```bash
+cd backend && npm start
+```
+
+Render quick start:
+
+1. Push this repository to GitHub.
+2. In Render, create a new Blueprint instance from the repo.
+3. Fill in `MONGO_URI` when prompted.
+4. Deploy.
+
+### Option B: Split services (frontend + backend)
+
+- Deploy backend as a Node service.
+- Deploy frontend as a static site.
+- Configure frontend to call backend URL (for example by setting `REACT_APP_API_URL` and routing API calls through a centralized client).
+
+If you choose this option, ensure CORS and API base URLs match your deployed domains.
 
 ## Backend API Reference
 

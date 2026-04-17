@@ -48,7 +48,7 @@ function ResumeBuilder() {
     try {
       const userId = localStorage.getItem("userId");
       console.log("Loading resumes for user:", userId);
-      const response = await axios.get(`http://127.0.0.1:5000/resumes?user_id=${userId}`);
+      const response = await axios.get(`/resumes?user_id=${userId}`);
       const userResumes = response.data;
       console.log("Resumes loaded:", userResumes);
       
@@ -233,7 +233,7 @@ function ResumeBuilder() {
       if (currentResumeId && currentResumeId !== "new") {
         // Update existing resume
         console.log("Updating existing resume:", currentResumeId);
-        await axios.put(`http://127.0.0.1:5000/resumes/${currentResumeId}`, {
+        await axios.put(`/resumes/${currentResumeId}`, {
           user_id: userId,
           name: resumeName,
           ...resumeData
@@ -242,7 +242,7 @@ function ResumeBuilder() {
       } else {
         // Create new resume
         console.log("Creating new resume with name:", resumeName);
-        const response = await axios.post("http://127.0.0.1:5000/resumes", {
+        const response = await axios.post("/resumes", {
           user_id: userId,
           name: resumeName,
           ...resumeData
@@ -315,7 +315,7 @@ function ResumeBuilder() {
     if (window.confirm("Are you sure you want to delete this resume?")) {
       try {
         const userId = localStorage.getItem("userId");
-        await axios.delete(`http://127.0.0.1:5000/resumes/${resumeId}?user_id=${userId}`);
+        await axios.delete(`/resumes/${resumeId}?user_id=${userId}`);
         
         // If deleting current resume, create a new one
         if (resumeId === currentResumeId) {

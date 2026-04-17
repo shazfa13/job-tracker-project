@@ -26,7 +26,7 @@ function SkillSuggestor() {
 
     setIsLoading(true);
     try {
-      const response = await axios.post("http://127.0.0.1:5000/analyze-skills", {
+      const response = await axios.post("/analyze-skills", {
         description: jobDescription
       });
 

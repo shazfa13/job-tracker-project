@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: job-tracker-fullstack
+    env: node
+    plan: free
+    buildCommand: npm run install-all && npm run build
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: DB_NAME
+        value: jobtracker
+      - key: PORT
+        value: 10000

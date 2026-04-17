@@ -47,13 +47,13 @@ function JobTracker() {
   const fetchJobs = async () => {
     const role = localStorage.getItem("userRole");
     const id = localStorage.getItem("userId");
-    const res = await axios.get(`http://127.0.0.1:5000/jobs?user_id=${id}&role=${role}`);
+    const res = await axios.get(`/jobs?user_id=${id}&role=${role}`);
     setJobs(res.data);
   };
 
   const deleteJob = async (id) => {
     if (!window.confirm("Are you sure you want to delete this job?")) return;
-    await axios.delete(`http://127.0.0.1:5000/jobs/${id}?user_id=${userId}&role=${userRole}`);
+    await axios.delete(`/jobs/${id}?user_id=${userId}&role=${userRole}`);
     fetchJobs();
   };
 
@@ -73,7 +73,7 @@ function JobTracker() {
 
   const updateJob = async () => {
     try {
-      await axios.put(`http://127.0.0.1:5000/jobs/${editingJob}`, {
+      await axios.put(`/jobs/${editingJob}`, {
         user_id: userId,
         user_role: userRole,
         company: editForm.company,
@@ -113,7 +113,7 @@ function JobTracker() {
 
   const saveNotes = async () => {
     try {
-      await axios.put(`http://127.0.0.1:5000/jobs/${notesJobId}`, {
+      await axios.put(`/jobs/${notesJobId}`, {
         user_id: userId,
         user_role: userRole,
         company: jobs.find(j => j.id === notesJobId)?.company,

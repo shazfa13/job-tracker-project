@@ -27,7 +27,7 @@ function ResumeUpload() {
 
   const fetchResumes = async () => {
     try {
-      const res = await axios.get(`http://127.0.0.1:5000/resumes/${userId}`);
+      const res = await axios.get(`/resumes/${userId}`);
       setUploadedResumes(res.data || []);
     } catch (error) {
       console.error("Error fetching resumes:", error);
@@ -71,7 +71,7 @@ function ResumeUpload() {
     try {
       const resumeFileContent = await fileToBase64(resumeFile);
 
-      await axios.post("http://127.0.0.1:5000/upload-resume", {
+      await axios.post("/upload-resume", {
         user_id: userId,
         resume_name: resumeName,
         resume_file: resumeFileContent

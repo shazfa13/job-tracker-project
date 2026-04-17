@@ -38,8 +38,8 @@ function AdminDashboard() {
     setIsRefreshing(true);
     try {
       const [jobsRes, clientsRes] = await Promise.all([
-        axios.get("http://127.0.0.1:5000/admin/jobs?role=admin"),
-        axios.get("http://127.0.0.1:5000/admin/clients?role=admin")
+        axios.get("/admin/jobs?role=admin"),
+        axios.get("/admin/clients?role=admin")
       ]);
       setJobs(jobsRes.data);
       setClients(clientsRes.data);
@@ -53,7 +53,7 @@ function AdminDashboard() {
   const deleteClient = async (clientId) => {
     if (window.confirm("Are you sure you want to delete this client and all their jobs?")) {
       try {
-        await axios.delete(`http://127.0.0.1:5000/admin/clients/${clientId}?role=admin`);
+        await axios.delete(`/admin/clients/${clientId}?role=admin`);
         alert("Client deleted successfully");
         fetchAllData();
       } catch (error) {
@@ -64,7 +64,7 @@ function AdminDashboard() {
 
   const deleteJob = async (jobId) => {
     try {
-      await axios.delete(`http://127.0.0.1:5000/admin/jobs/${jobId}?role=admin`);
+      await axios.delete(`/admin/jobs/${jobId}?role=admin`);
       alert("Job deleted successfully");
       fetchAllData();
     } catch (error) {
@@ -84,7 +84,7 @@ function AdminDashboard() {
 
     try {
       await Promise.all(
-        selectedJobIds.map((id) => axios.delete(`http://127.0.0.1:5000/admin/jobs/${id}?role=admin`))
+        selectedJobIds.map((id) => axios.delete(`/admin/jobs/${id}?role=admin`))
       );
       alert("Selected jobs deleted successfully");
       setSelectedJobIds([]);

@@ -39,7 +39,7 @@ function SearchCompany() {
     const id = localStorage.getItem("userId");
 
     try {
-      const res = await axios.get(`http://127.0.0.1:5000/jobs?user_id=${id}&role=${role}`);
+      const res = await axios.get(`/jobs?user_id=${id}&role=${role}`);
       setJobs(res.data);
     } finally {
       setIsLoading(false);

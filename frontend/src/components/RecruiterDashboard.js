@@ -36,7 +36,7 @@ function RecruiterDashboard() {
   const fetchJobPostings = async () => {
     try {
       const res = await axios.get(
-        `http://127.0.0.1:5000/recruiter-jobs/${userId}`
+        `/recruiter-jobs/${userId}`
       );
       setJobPostings(res.data || []);
     } catch (error) {
@@ -49,7 +49,7 @@ function RecruiterDashboard() {
   const fetchApplicants = async (jobId) => {
     try {
       const res = await axios.get(
-        `http://127.0.0.1:5000/job-applicants/${jobId}`
+        `/job-applicants/${jobId}`
       );
       setApplicants(res.data || []);
     } catch (error) {
@@ -59,7 +59,7 @@ function RecruiterDashboard() {
 
   const fetchRecruiterAnalytics = async () => {
     try {
-      const res = await axios.get(`http://127.0.0.1:5000/recruiter-analytics/${userId}`);
+      const res = await axios.get(`/recruiter-analytics/${userId}`);
       const jobs = res.data?.jobs || [];
       const counts = jobs.reduce((acc, item) => {
         acc[item.job_id] = item.totalApplicants || 0;
@@ -74,7 +74,7 @@ function RecruiterDashboard() {
   const handleApplicantDecision = async (applicationId, status) => {
     setDecisionLoadingId(applicationId);
     try {
-      await axios.patch(`http://127.0.0.1:5000/job-applications/${applicationId}/status`, {
+      await axios.patch(`/job-applications/${applicationId}/status`, {
         recruiter_id: userId,
         status
       });
@@ -93,7 +93,7 @@ function RecruiterDashboard() {
   const handleDeleteJob = async (jobId) => {
     if (window.confirm("Are you sure you want to delete this job posting?")) {
       try {
-        await axios.delete(`http://127.0.0.1:5000/job-postings/${jobId}`);
+        await axios.delete(`/job-postings/${jobId}`);
         alert("Job posting deleted successfully");
         fetchJobPostings();
         setSelectedJob(null);

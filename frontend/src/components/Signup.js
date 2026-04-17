@@ -31,7 +31,7 @@ function Signup() {
 
     setIsLoading(true);
     try {
-      await axios.post("http://127.0.0.1:5000/signup", {
+      await axios.post("/signup", {
         username: normalizedUsername,
         password: normalizedPassword,
         role
@@ -55,7 +55,7 @@ function Signup() {
   const handleResetDB = async () => {
     if (window.confirm("Are you sure you want to reset the database? This will delete all data.")) {
       try {
-        await axios.post("http://127.0.0.1:5000/reset-db");
+        await axios.post("/reset-db");
         alert("Database reset successfully! You can now create new accounts.");
         window.location.reload();
       } catch (error) {

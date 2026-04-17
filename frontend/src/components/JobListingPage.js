@@ -24,7 +24,7 @@ function JobListingPage() {
 
   const fetchJobs = useCallback(async () => {
     try {
-      const res = await axios.get("http://127.0.0.1:5000/job-postings");
+      const res = await axios.get("/job-postings");
       setJobs(res.data || []);
     } catch (error) {
       console.error("Error fetching jobs:", error);
@@ -36,7 +36,7 @@ function JobListingPage() {
   const fetchAppliedJobs = useCallback(async () => {
     try {
       const res = await axios.get(
-        `http://127.0.0.1:5000/job-applications/${userId}`
+        `/job-applications/${userId}`
       );
       const apps = res.data || [];
       setAppliedJobs(apps.map((app) => app.job_id));
@@ -104,7 +104,7 @@ function JobListingPage() {
         fileToPayload(coverPageFile)
       ]);
 
-      await axios.post("http://127.0.0.1:5000/apply-job", {
+      await axios.post("/apply-job", {
         user_id: userId,
         job_id: jobId,
         resume_attachment: resumeAttachment,
@@ -146,7 +146,7 @@ function JobListingPage() {
 
     setIsWithdrawing(true);
     try {
-      await axios.delete(`http://127.0.0.1:5000/job-applications/${applicationId}`, {
+      await axios.delete(`/job-applications/${applicationId}`, {
         params: { user_id: userId }
       });
 

@@ -35,7 +35,7 @@ function CreateJobPosting() {
         .map((req) => req.trim())
         .filter((req) => req);
 
-      await axios.post("http://127.0.0.1:5000/create-job-posting", {
+      await axios.post("/create-job-posting", {
         recruiter_id: userId,
         position: position.trim(),
         company: company.trim(),

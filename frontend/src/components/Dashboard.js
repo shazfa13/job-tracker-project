@@ -38,7 +38,7 @@ function Dashboard() {
     const role = localStorage.getItem("userRole");
     const id = localStorage.getItem("userId");
 
-    const res = await axios.get(`http://127.0.0.1:5000/jobs?user_id=${id}&role=${role}`);
+    const res = await axios.get(`/jobs?user_id=${id}&role=${role}`);
 
     setJobs(res.data);
   };
