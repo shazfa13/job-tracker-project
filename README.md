@@ -93,7 +93,11 @@ job-tracker-project/
 	package.json                # root scripts to run both apps
 	backend/
 		package.json
-		server.js                 # Express API + MongoDB connection
+		server.js                 # Express bootstrap
+		controllers/              # Request handlers grouped by feature
+		middleware/               # Shared Express middleware
+		models/                   # MongoDB connection + serializers
+		routes/                   # Route definitions wired to controllers
 	frontend/
 		package.json
 		src/

@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./JobPortal.css";
-
 function JobListingPage() {
   const [jobs, setJobs] = useState([]);
   const [filteredJobs, setFilteredJobs] = useState([]);
@@ -23,26 +22,7 @@ function JobListingPage() {
   const navigate = useNavigate();
   const userId = localStorage.getItem("userId");
 
-  useEffect(() => {
-    const loggedIn = localStorage.getItem("loggedIn");
-    if (!loggedIn) {
-      navigate("/job-seeker-signup");
-      return;
-    }
-    fetchJobs();
-    fetchAppliedJobs();
-  }, []);
-
-  useEffect(() => {
-    const results = jobs.filter(
-      (job) =>
-        job.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.company.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredJobs(results);
-  }, [searchTerm, jobs]);
-
-  const fetchJobs = async () => {
+  const fetchJobs = useCallback(async () => {
     try {
       const res = await axios.get("http://127.0.0.1:5000/job-postings");
       setJobs(res.data || []);
@@ -51,9 +31,9 @@ function JobListingPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const fetchAppliedJobs = async () => {
+  const fetchAppliedJobs = useCallback(async () => {
     try {
       const res = await axios.get(
         `http://127.0.0.1:5000/job-applications/${userId}`
@@ -69,7 +49,26 @@ function JobListingPage() {
     } catch (error) {
       console.error("Error fetching applied jobs:", error);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    const loggedIn = localStorage.getItem("loggedIn");
+    if (!loggedIn) {
+      navigate("/job-seeker-signup");
+      return;
+    }
+    fetchJobs();
+    fetchAppliedJobs();
+  }, [navigate, fetchJobs, fetchAppliedJobs]);
+
+  useEffect(() => {
+    const results = jobs.filter(
+      (job) =>
+        job.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.company.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredJobs(results);
+  }, [searchTerm, jobs]);
 
   const fileToPayload = (file) => {
     return new Promise((resolve, reject) => {
