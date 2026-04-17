@@ -1,9 +1,9 @@
 services:
   - type: web
-    name: job-tracker-fullstack
+    name: job-tracker-backend
     env: node
     plan: free
-    buildCommand: npm run install-all && npm run build
+    buildCommand: cd backend && npm install
     startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
@@ -14,3 +14,7 @@ services:
         value: jobtracker
       - key: PORT
         value: 10000
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: SERVE_STATIC_FRONTEND
+        value: false

@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const { connectDatabase, PORT } = require('./models/database');
 const authRoutes = require('./routes/authRoutes');
 const resumeRoutes = require('./routes/resumeRoutes');
@@ -11,7 +12,20 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
-app.use(cors());
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN;
+const allowedOrigins = FRONTEND_ORIGIN
+  ? FRONTEND_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean)
+  : [];
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+  }
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -21,12 +35,17 @@ app.use(jobRoutes);
 app.use(adminRoutes);
 app.use(portalRoutes);
 
-if (process.env.NODE_ENV === 'production') {
+const shouldServeFrontend = process.env.SERVE_STATIC_FRONTEND === 'true';
+if (process.env.NODE_ENV === 'production' && shouldServeFrontend) {
   const frontendBuildPath = path.join(__dirname, '..', 'frontend', 'build');
-  app.use(express.static(frontendBuildPath));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendBuildPath, 'index.html'));
-  });
+  const indexPath = path.join(frontendBuildPath, 'index.html');
+
+  if (fs.existsSync(indexPath)) {
+    app.use(express.static(frontendBuildPath));
+    app.get('*', (req, res) => {
+      res.sendFile(indexPath);
+    });
+  }
 }
 
 app.use(errorHandler);

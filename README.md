@@ -222,55 +222,56 @@ Current behavior: frontend requests use relative API paths (for example `/jobs`)
 
 ## Deployment
 
-This project is deployment-ready in two ways.
+Current deployment target:
 
-### Option A: Single service (recommended)
+- Frontend -> Vercel
+- Backend -> Render
+- Database -> MongoDB Atlas
 
-Use one Node service to host both API and React build.
+### 1) Deploy Backend to Render
 
-This repo includes a Render blueprint file at `render.yaml` with preconfigured build/start commands and environment variable keys.
+This repo includes `render.yaml` configured for backend-only deployment.
 
-How it works:
+Render service settings used:
 
-- Build the frontend (`frontend/build`).
-- Start the backend (`backend/server.js`).
-- In production mode, backend serves the React build and API from the same domain.
+- Build command: `cd backend && npm install`
+- Start command: `cd backend && npm start`
 
-Required environment variables:
+Required Render environment variables:
 
-- `MONGO_URI`
-- `DB_NAME`
-- `PORT`
 - `NODE_ENV=production`
+- `MONGO_URI=<your-atlas-connection-string>`
+- `DB_NAME=jobtracker`
+- `PORT=10000` (or Render-provided port)
+- `FRONTEND_ORIGIN=<your-vercel-domain>`
+- `SERVE_STATIC_FRONTEND=false`
 
-Example deploy commands:
+### 2) Deploy Frontend to Vercel
 
-Build command:
+In Vercel project settings:
 
-```bash
-npm run install-all && npm run build
-```
+- Root Directory: `frontend`
+- Build Command: `npm run build`
+- Output Directory: `build`
 
-Start command:
+Required Vercel environment variable:
 
-```bash
-cd backend && npm start
-```
+- `REACT_APP_API_URL=<your-render-backend-url>`
 
-Render quick start:
+Notes:
 
-1. Push this repository to GitHub.
-2. In Render, create a new Blueprint instance from the repo.
-3. Fill in `MONGO_URI` when prompted.
-4. Deploy.
+- SPA route fallback is configured in `frontend/vercel.json`.
+- Global Axios base URL is configured in `frontend/src/index.js`.
 
-### Option B: Split services (frontend + backend)
+### 3) Use MongoDB Atlas
 
-- Deploy backend as a Node service.
-- Deploy frontend as a static site.
-- Configure frontend to call backend URL (for example by setting `REACT_APP_API_URL` and routing API calls through a centralized client).
+Create an Atlas cluster, then set Render `MONGO_URI` with your Atlas connection string.
 
-If you choose this option, ensure CORS and API base URLs match your deployed domains.
+Atlas checklist:
+
+- Create DB user and password.
+- Add Render outbound IP access (or temporary `0.0.0.0/0` for testing).
+- Ensure connection string includes retry options from Atlas template.
 
 ## Backend API Reference
 
