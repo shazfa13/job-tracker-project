@@ -145,10 +145,6 @@ function Signup() {
               {isLoading ? "Creating Account..." : "Create Account"}
             </button>
 
-            <button className="btn btn-ghost" onClick={handleResetDB} style={{ width: "100%" }}>
-              Reset Database (Development)
-            </button>
-
             <p style={{ margin: 0, textAlign: "center", color: muted }}>
               Already have an account? <Link to="/login" className="link-inline">Sign In</Link>
             </p>
