@@ -14,6 +14,7 @@ The project uses a React frontend and an Express + MongoDB backend.
 - [Key Features](#key-features)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
+- [Backend Architecture](#backend-architecture)
 - [How Roles Work](#how-roles-work)
 - [Getting Started](#getting-started)
 - [Environment Variables](#environment-variables)
@@ -105,6 +106,26 @@ job-tracker-project/
 			components/             # UI modules for all roles
 			services/api.js         # axios instance (optional use)
 ```
+
+## Backend Architecture
+
+The backend uses a modular Express structure while keeping existing API routes unchanged.
+
+Request flow:
+
+1. `server.js` bootstraps Express and global middleware.
+2. `models/database.js` initializes MongoDB and creates indexes.
+3. `routes/*.js` defines endpoint paths.
+4. `controllers/*.js` handles request/response logic.
+5. `middleware/errorHandler.js` catches uncaught runtime errors and returns JSON errors.
+
+Controller-to-domain mapping:
+
+- `authController`: signup/login
+- `resumeController`: resume builder + resume upload
+- `jobController`: job tracker + notes + reset-db + skill analysis
+- `adminController`: admin jobs/clients management
+- `portalController`: recruiter + job-seeker portal flows
 
 ## How Roles Work
 
@@ -282,6 +303,14 @@ Indexes are created for common lookup fields such as `username`, `user_id`, `rec
 - Ensure MongoDB is running.
 - Verify backend started on port 5000.
 - Check `backend/.env` values.
+
+### `npm run dev` exits with code 1 (backend)
+
+- From `backend/`, run `npm run dev`.
+- From project root, run `npm run backend:dev`.
+- Ensure `backend/.env` has valid `MONGO_URI`, `DB_NAME`, and `PORT` values.
+- If using MongoDB Atlas, verify connection string credentials and network allow-list.
+- Check backend logs for `Failed to connect MongoDB` and fix DB connectivity before retrying.
 
 ### Login/signup failures
 
