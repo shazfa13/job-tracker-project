@@ -29,7 +29,6 @@ function ResumeBuilder() {
   const [resumes, setResumes] = useState([]);
   const [currentResumeId, setCurrentResumeId] = useState(null);
   const [resumeName, setResumeName] = useState("Untitled Resume");
-  const [isLoading, setIsLoading] = useState(false);
   
   const navigate = useNavigate();
 
@@ -240,7 +239,6 @@ function ResumeBuilder() {
   };
 
   const saveResume = async () => {
-    setIsLoading(true);
     try {
       const userId = localStorage.getItem("userId");
       console.log("Saving resume for user:", userId);
@@ -274,8 +272,6 @@ function ResumeBuilder() {
     } catch (error) {
       console.error("Error saving resume:", error);
       alert("Failed to save resume. Please try again.");
-    } finally {
-      setIsLoading(false);
     }
   };
 
