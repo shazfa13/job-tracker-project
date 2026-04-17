@@ -6,8 +6,6 @@ import { useNavigate } from "react-router-dom";
 function SearchCompany() {
   const [jobs, setJobs] = useState([]);
   const [searchCompany, setSearchCompany] = useState("");
-  const [userRole, setUserRole] = useState("");
-  const [userId, setUserId] = useState("");
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem("darkMode") === "true";
   });
@@ -20,16 +18,11 @@ function SearchCompany() {
 
   useEffect(() => {
     const loggedIn = localStorage.getItem("loggedIn");
-    const role = localStorage.getItem("userRole");
-    const id = localStorage.getItem("userId");
-
     if (!loggedIn) {
       navigate("/");
       return;
     }
 
-    setUserRole(role);
-    setUserId(id);
     fetchJobs();
   }, [navigate]);
 

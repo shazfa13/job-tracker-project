@@ -10,8 +10,6 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointE
 function Dashboard() {
 
   const [jobs, setJobs] = useState([]);
-  const [userRole, setUserRole] = useState("");
-  const [userId, setUserId] = useState("");
   const [darkMode, setDarkMode] = useState(localStorage.getItem("darkMode") === "true");
 
   const navigate = useNavigate();
@@ -19,16 +17,11 @@ function Dashboard() {
   useEffect(() => {
 
     const loggedIn = localStorage.getItem("loggedIn");
-    const role = localStorage.getItem("userRole");
-    const id = localStorage.getItem("userId");
-
     if (!loggedIn) {
       navigate("/");
       return;
     }
 
-    setUserRole(role);
-    setUserId(id);
     fetchJobs();
 
   }, [navigate]);

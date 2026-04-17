@@ -35,7 +35,6 @@ function AddJob() {
 
     try {
       const userId = localStorage.getItem("userId");
-      const userRole = localStorage.getItem("userRole");
 
       if (!userId) {
         alert("User ID not found. Please log in again.");

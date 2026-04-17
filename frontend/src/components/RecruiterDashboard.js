@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./JobPortal.css";
@@ -17,23 +17,7 @@ function RecruiterDashboard() {
   const navigate = useNavigate();
   const userId = localStorage.getItem("userId");
 
-  useEffect(() => {
-    const loggedIn = localStorage.getItem("loggedIn");
-    if (!loggedIn) {
-      navigate("/recruiter-signup");
-      return;
-    }
-    fetchJobPostings();
-    fetchRecruiterAnalytics();
-  }, []);
-
-  useEffect(() => {
-    if (selectedJob) {
-      fetchApplicants(selectedJob._id);
-    }
-  }, [selectedJob]);
-
-  const fetchJobPostings = async () => {
+  const fetchJobPostings = useCallback(async () => {
     try {
       const res = await axios.get(
         `/recruiter-jobs/${userId}`
@@ -44,9 +28,9 @@ function RecruiterDashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId]);
 
-  const fetchApplicants = async (jobId) => {
+  const fetchApplicants = useCallback(async (jobId) => {
     try {
       const res = await axios.get(
         `/job-applicants/${jobId}`
@@ -55,9 +39,9 @@ function RecruiterDashboard() {
     } catch (error) {
       console.error("Error fetching applicants:", error);
     }
-  };
+  }, []);
 
-  const fetchRecruiterAnalytics = async () => {
+  const fetchRecruiterAnalytics = useCallback(async () => {
     try {
       const res = await axios.get(`/recruiter-analytics/${userId}`);
       const jobs = res.data?.jobs || [];
@@ -69,7 +53,23 @@ function RecruiterDashboard() {
     } catch (error) {
       console.error("Error fetching recruiter analytics:", error);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    const loggedIn = localStorage.getItem("loggedIn");
+    if (!loggedIn) {
+      navigate("/recruiter-signup");
+      return;
+    }
+    fetchJobPostings();
+    fetchRecruiterAnalytics();
+  }, [fetchJobPostings, fetchRecruiterAnalytics, navigate]);
+
+  useEffect(() => {
+    if (selectedJob) {
+      fetchApplicants(selectedJob._id);
+    }
+  }, [fetchApplicants, selectedJob]);
 
   const handleApplicantDecision = async (applicationId, status) => {
     setDecisionLoadingId(applicationId);

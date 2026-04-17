@@ -14,24 +14,24 @@ function RecruiterAnalyticsDashboard() {
   const userId = localStorage.getItem("userId");
 
   useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const res = await axios.get(`/recruiter-analytics/${userId}`);
+        setAnalytics(res.data || { summary: {}, jobs: [] });
+      } catch (error) {
+        console.error("Error fetching analytics:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     const loggedIn = localStorage.getItem("loggedIn");
     if (!loggedIn) {
       navigate("/recruiter-signup");
       return;
     }
     fetchAnalytics();
-  }, []);
-
-  const fetchAnalytics = async () => {
-    try {
-      const res = await axios.get(`/recruiter-analytics/${userId}`);
-      setAnalytics(res.data || { summary: {}, jobs: [] });
-    } catch (error) {
-      console.error("Error fetching analytics:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [navigate, userId]);
 
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;

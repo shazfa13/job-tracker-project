@@ -52,18 +52,6 @@ function Signup() {
     }
   };
 
-  const handleResetDB = async () => {
-    if (window.confirm("Are you sure you want to reset the database? This will delete all data.")) {
-      try {
-        await axios.post("/reset-db");
-        alert("Database reset successfully! You can now create new accounts.");
-        window.location.reload();
-      } catch (error) {
-        alert("Failed to reset database");
-      }
-    }
-  };
-
   const pageBg = darkMode ? "#111827" : "#f3f4f6";
   const cardBg = darkMode ? "#1f2937" : "#ffffff";
   const textColor = darkMode ? "#f3f4f6" : "#111827";

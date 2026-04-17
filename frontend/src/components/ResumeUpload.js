@@ -17,24 +17,24 @@ function ResumeUpload() {
   const userId = localStorage.getItem("userId");
 
   useEffect(() => {
+    const fetchResumes = async () => {
+      try {
+        const res = await axios.get(`/resumes/${userId}`);
+        setUploadedResumes(res.data || []);
+      } catch (error) {
+        console.error("Error fetching resumes:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     const loggedIn = localStorage.getItem("loggedIn");
     if (!loggedIn) {
       navigate("/job-seeker-signup");
       return;
     }
     fetchResumes();
-  }, []);
-
-  const fetchResumes = async () => {
-    try {
-      const res = await axios.get(`/resumes/${userId}`);
-      setUploadedResumes(res.data || []);
-    } catch (error) {
-      console.error("Error fetching resumes:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [navigate, userId]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -79,7 +79,8 @@ function ResumeUpload() {
       alert("Resume uploaded successfully!");
       setResumeFile(null);
       setResumeName("");
-      fetchResumes();
+      const res = await axios.get(`/resumes/${userId}`);
+      setUploadedResumes(res.data || []);
     } catch (error) {
       alert("Error uploading resume: " + (error.response?.data?.error || error.message));
     } finally {

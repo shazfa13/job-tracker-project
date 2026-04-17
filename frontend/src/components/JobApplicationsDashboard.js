@@ -15,26 +15,26 @@ function JobApplicationsDashboard() {
   const userId = localStorage.getItem("userId");
 
   useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        const res = await axios.get(
+          `/job-applications/${userId}`
+        );
+        setApplications(res.data || []);
+      } catch (error) {
+        console.error("Error fetching applications:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     const loggedIn = localStorage.getItem("loggedIn");
     if (!loggedIn) {
       navigate("/job-seeker-signup");
       return;
     }
     fetchApplications();
-  }, []);
-
-  const fetchApplications = async () => {
-    try {
-      const res = await axios.get(
-        `/job-applications/${userId}`
-      );
-      setApplications(res.data || []);
-    } catch (error) {
-      console.error("Error fetching applications:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [navigate, userId]);
 
   const handleWithdrawApplication = async (applicationId) => {
     const shouldWithdraw = window.confirm(

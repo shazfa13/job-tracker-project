@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import Navbar from "./Navbar";
 import { useNavigate } from "react-router-dom";
@@ -33,18 +33,28 @@ function ResumeBuilder() {
   
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const loggedIn = localStorage.getItem("loggedIn");
-    if (!loggedIn) {
-      navigate("/");
-      return;
-    }
+  const createNewResume = useCallback(() => {
+    // Don't clear currentResumeId immediately, let it be set when user saves
+    setCurrentResumeId("new");
+    setResumeName("Untitled Resume");
+    setResumeData({
+      personalInfo: {
+        fullName: "",
+        email: "",
+        phone: "",
+        location: "",
+        linkedin: "",
+        github: ""
+      },
+      summary: "",
+      experience: [],
+      education: [],
+      skills: [],
+      projects: []
+    });
+  }, []);
 
-    // Load user resumes from API
-    loadUserResumes();
-  }, [navigate]);
-
-  const loadUserResumes = async () => {
+  const loadUserResumes = useCallback(async () => {
     try {
       const userId = localStorage.getItem("userId");
       console.log("Loading resumes for user:", userId);
@@ -83,7 +93,18 @@ function ResumeBuilder() {
       // If there's an error, start with new resume
       createNewResume();
     }
-  };
+  }, [createNewResume]);
+
+  useEffect(() => {
+    const loggedIn = localStorage.getItem("loggedIn");
+    if (!loggedIn) {
+      navigate("/");
+      return;
+    }
+
+    // Load user resumes from API
+    loadUserResumes();
+  }, [loadUserResumes, navigate]);
 
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;
@@ -213,10 +234,6 @@ function ResumeBuilder() {
     }));
   };
 
-  const saveToLocalStorage = () => {
-    saveResume();
-  };
-
   const saveSection = async (section) => {
     await saveResume();
     alert(`${section.charAt(0).toUpperCase() + section.slice(1)} saved successfully!`);
@@ -260,27 +277,6 @@ function ResumeBuilder() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const createNewResume = () => {
-    // Don't clear currentResumeId immediately, let it be set when user saves
-    setCurrentResumeId("new");
-    setResumeName("Untitled Resume");
-    setResumeData({
-      personalInfo: {
-        fullName: "",
-        email: "",
-        phone: "",
-        location: "",
-        linkedin: "",
-        github: ""
-      },
-      summary: "",
-      experience: [],
-      education: [],
-      skills: [],
-      projects: []
-    });
   };
 
   const loadResume = async (resumeId) => {
