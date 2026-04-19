@@ -395,4 +395,4 @@ Indexes are created for common lookup fields such as `username`, `user_id`, `rec
 - Add unit/integration tests for critical API and UI flows.
 - Improve deployment readiness (environment-specific config, health checks, CI/CD).
 
-LIVE LINK:https://job-tracker-project-rp6r.onrender.com
+LIVE LINK:https://job-tracker-project-two.vercel.app/
